@@ -8,10 +8,9 @@ import {IWorldID} from "world-id-contracts/interfaces/IWorldID.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ByteHasher} from "world-id-contracts/libraries/ByteHasher.sol";
 
-/// @title World ID Airdrop example
+/// @title RecurringGrantDrop
 /// @author Worldcoin
-/// @notice Template contract for airdropping tokens to World ID users
-contract WorldIDAirdrop {
+contract RecurringGrantDrop {
     using ByteHasher for bytes;
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -53,16 +52,16 @@ contract WorldIDAirdrop {
     /// @dev Make sure the holder has approved spending for this contract!
     address public immutable holder;
 
-    /// @notice The address that manages this airdrop, which is allowed to update the `airdropAmount`.
+    /// @notice The address that manages this airdrop
     address public immutable manager = msg.sender;
 
-    /// @notice The grant instance used.
-    IGrant private grant;
+    /// @notice The     grant instance used
+    IGrant public grant;
 
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
     mapping(uint256 => bool) internal nullifierHashes;
 
-    /// @dev Allowed addresses to call the `claim` function.
+    /// @dev Allowed addresses to call `claim`
     mapping(address => bool) internal allowedCallers;
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -71,10 +70,10 @@ contract WorldIDAirdrop {
 
     /// @notice Deploys a WorldIDAirdrop instance
     /// @param _worldIdRouter The WorldID router that will manage groups and verify proofs
-    /// @param _groupId The ID of the group World ID is using (`1`)
-    /// @param _token The ERC20 token that will be airdropped to eligible participants
+    /// @param _groupId The group ID of the World ID
+    /// @param _token The ERC20 token that will be airdropped
     /// @param _holder The address holding the tokens that will be airdropped
-    /// @param _grant The grant that will be used to calculate the amount of tokens to airdrop
+    /// @param _grant The grant that contains the amounts and validity
     constructor(
         IWorldIDGroups _worldIdRouter,
         uint256 _groupId,
@@ -141,7 +140,7 @@ contract WorldIDAirdrop {
         allowedCallers[_caller] = false;
     }
 
-    /// @notice Update the grant. 
+    /// @notice Update the grant
     /// @param _grant The new grant
     function setGrant(IGrant _grant) public {
         if (msg.sender != manager) revert Unauthorized();
