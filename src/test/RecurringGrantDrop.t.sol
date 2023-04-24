@@ -8,12 +8,11 @@ import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
 import {MonthlyGrant} from "../MonthlyGrant.sol";
 import {IGrant} from "../IGrant.sol";
 
-/// @title World ID Airdrop Tests
-/// @notice Contains tests for the template airdrop contracts for WorldID users
+/// @title RecurringGrantDrop Tests
 /// @author Worldcoin
 /// @dev These contracts mock the identity manager (never reverts) and tests the airdrop
 /// functionality for a single airdrop.
-contract WorldIDAirdropTest is PRBTest {
+contract RecurringGrantDropTest is PRBTest {
     event AmountUpdated(uint256 amount);
 
     address public user;

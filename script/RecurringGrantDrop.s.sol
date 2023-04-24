@@ -5,23 +5,25 @@ import {Script} from "forge-std/Script.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
-import {WorldIDAirdrop} from "src/WorldIDAirdrop.sol";
+import {RecurringGrantDrop} from "src/RecurringGrantDrop.sol";
+import {MonthlyGrant} from "src/MonthlyGrant.sol";
+import {HourlyGrant} from "src/HourlyGrant.sol";
+import {IGrant} from "src/IGrant.sol";
 
-/// @title Deployment script for WorldIDAirdrop
+/// @title Deployment script for RecurringGrantDrop
 /// @author Worldcoin
-/// @notice Deploys the WorldIDAirdrop contract with the correct parameters
+/// @notice Deploys the RecurringGrantDrop contract with the correct parameters
 /// @dev You need to have the necessary values in scripts/.deploy-config.json in order for it to work.
 /// Can be run by executing `make deploy-airdrop` (assumes a deployment of world-id-contracts or a mock)
-/// or `make mock-airdrop` (local testing with Foundry's anvil) in the shell.
-contract DeployWorldIDAirdrop is Script {
+contract DeployRecurringGrantDrop is Script {
 
-    WorldIDAirdrop public worldIDAirdrop;
-
+    RecurringGrantDrop public airdrop;
+    IGrant grant;
     ///////////////////////////////////////////////////////////////////
     ///                            CONFIG                           ///
     ///////////////////////////////////////////////////////////////////
     string public root = vm.projectRoot();
-    string public path = string.concat(root, "/scripts/.deploy-config.json");
+    string public path = string.concat(root, "/script/.deploy-config.json");
     string public json = vm.readFile(path);
 
     uint256 private privateKey = abi.decode(vm.parseJson(json, ".privateKey"), (uint256));
@@ -31,21 +33,21 @@ contract DeployWorldIDAirdrop is Script {
     ///////////////////////////////////////////////////////////////////
 
     address public worldIDRouterAddress = abi.decode(vm.parseJson(json, ".worldIDRouterAddress"), (address));
-
     IWorldIDGroups public worldIdRouter = IWorldIDGroups(worldIDRouterAddress);
 
     uint256 public groupId = abi.decode(vm.parseJson(json, ".groupId"), (uint256));
-    string public actionId = abi.decode(vm.parseJson(json, ".actionId"), (string));
     address public erc20Address = abi.decode(vm.parseJson(json, ".erc20Address"), (address)); 
-    address public holder = abi.decode(vm.parseJson(json, ".holderAddress"), (address)); 
-    uint256 public airdropAmount = abi.decode(vm.parseJson(json, ".airdropAmount"), (uint256)); 
+    address public holder = abi.decode(vm.parseJson(json, ".holderAddress"), (address));
+    
 
     ERC20 public token = ERC20(erc20Address);
 
     function run() external {
         vm.startBroadcast(privateKey);
 
-        worldIDAirdrop = new WorldIDAirdrop(worldIdRouter, groupId, actionId, token, holder, airdropAmount);
+        grant = new HourlyGrant();
+
+        airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
 
         vm.stopBroadcast();
     }
