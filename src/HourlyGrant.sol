@@ -9,8 +9,8 @@ import { IGrant } from './IGrant.sol';
 
 contract HourlyGrant is IGrant {
     function getCurrentId() external view override returns (uint256) {
-        // Grant 0: Saturday, 22 April 2023 00:00:00
-        return block.timestamp / 3600 - 467256;
+        // Grant 0: Monday, 24 April 2023 00:00:00
+        return block.timestamp / 3600 - 467304;
     }
 
     function getAmount(uint256) external pure override returns (uint256) {

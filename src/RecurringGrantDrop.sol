@@ -102,6 +102,24 @@ contract RecurringGrantDrop {
         public
     {
         if (!allowedCallers[msg.sender]) revert Unauthorized();
+
+        checkClaim(grantId, receiver, root, nullifierHash, proof);
+
+        nullifierHashes[nullifierHash] = true;
+
+        SafeTransferLib.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
+
+        emit GrantClaimed(grantId, receiver);
+    }
+
+    /// @notice Check whether a claim is valid
+    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
+    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
+    /// @param nullifierHash The nullifier for this proof, preventing double signaling
+    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
+    function checkClaim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
+        public
+    {
         if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
         
         grant.checkValidity(grantId);
@@ -114,12 +132,6 @@ contract RecurringGrantDrop {
             grantId,
             proof
         );
-
-        nullifierHashes[nullifierHash] = true;
-
-        SafeTransferLib.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
-
-        emit GrantClaimed(grantId, receiver);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
