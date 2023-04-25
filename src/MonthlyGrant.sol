@@ -4,21 +4,29 @@ pragma solidity ^0.8.19;
 import { IGrant } from './IGrant.sol';
 
 contract MonthlyGrant is IGrant {
-    uint256 internal immutable MAX_VALIDITY = 12;
+    uint256 internal immutable startMonth;
+    uint256 internal immutable startYear;
+    uint256 internal immutable amount;
 
-    // The first grant is in May 2023
-    uint256 internal immutable START_MONTH = 5;
-    uint256 internal immutable START_YEAR = 2023;
+    /// @param _startMonth The month of the first grant (1-12)
+    /// @param _startYear The year of the first grant
+    /// @param _amount The amount of tokens for each grant
+    constructor(uint256 _startMonth, uint256 _startYear, uint256 _amount) {
+        startMonth = _startMonth;
+        startYear = _startYear;
+        amount = _amount;
+    }
 
     /// @notice Returns the current grant id starting from 0 (April 2023).
     function getCurrentId() external view override returns (uint256) {
         (uint256 year, uint256 month) = calculateYearAndMonth();
-        return (year - START_YEAR) * 12 + month - START_MONTH;
+        return (year - startYear) * 12 + month - startMonth;
     }
 
     /// @notice Returns fixed amount of tokens for now.
-    function getAmount(uint256) external pure override returns (uint256) {
-        return 10_000_000_000;
+    function getAmount(uint256) external view override returns (uint256) {
+        // As stated in IGrant, this may contain more sophisticated logic in the future.
+        return amount;
     }
 
     // @notice Anything that is not the current grant is invalid.

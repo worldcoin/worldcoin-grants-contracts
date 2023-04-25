@@ -21,7 +21,7 @@ contract RecurringGrantDropTest is PRBTest {
     address public manager;
     address public caller;
     address public holder;
-    uint256 public startTime = 1682899200;
+    uint256 public startTime = 1680307200; // Saturday, 1 April 2023 00:00:00 GMT
     TestERC20 internal token;
     WorldIDIdentityManagerRouterMock internal worldIDIdentityManagerRouterMock;
     RecurringGrantDrop internal airdrop;
@@ -31,7 +31,7 @@ contract RecurringGrantDropTest is PRBTest {
         groupId = 1;
         token = new TestERC20();
         worldIDIdentityManagerRouterMock = new WorldIDIdentityManagerRouterMock();
-        monthlyGrant = new MonthlyGrant();
+        monthlyGrant = new MonthlyGrant(4, 2023, 1 ether);
 
         manager = address(0x1);
         caller = address(0x2);
@@ -133,7 +133,7 @@ contract RecurringGrantDropTest is PRBTest {
 
     /// @notice Tests that the manager can update the grant
     function testUpdateGrant() public {
-        MonthlyGrant grant2 = new MonthlyGrant();
+        MonthlyGrant grant2 = new MonthlyGrant(5, 2023, 1 ether);
         assertEq(address(airdrop.grant()), address(monthlyGrant));
 
         vm.prank(manager);
@@ -144,7 +144,7 @@ contract RecurringGrantDropTest is PRBTest {
 
     /// @notice Tests that anyone that is not the manager can't update grant
     function testCannotUpdateGrantIfNotManager(address notManager) public {
-        MonthlyGrant grant2 = new MonthlyGrant();
+        MonthlyGrant grant2 = new MonthlyGrant(5, 2023, 1 ether);
         vm.assume(notManager != manager && notManager != address(0));
         assertEq(address(airdrop.grant()), address(monthlyGrant));
 

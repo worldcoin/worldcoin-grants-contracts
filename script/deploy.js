@@ -89,12 +89,48 @@ async function getPrivateKey(config) {
   }
 }
 
+async function getStartMonth(config) {
+  if (!config.startMonth) {
+    config.startMonth = parseInt(process.env.START_MONTH);
+  }
+  if (!config.startMonth) {
+    config.startMonth = parseInt(await ask('Enter start month: '));
+  }
+}
+
+async function getStartYear(config) {
+  if (!config.startYear) {
+    config.startYear = parseInt(process.env.START_YEAR);
+  }
+  if (!config.startYear) {
+    config.startYear = parseInt(await ask('Enter start year: '));
+  }
+}
+
+async function getAmount(config) {
+  if (!config.amount) {
+    config.amount = parseInt(process.env.AMOUNT);
+  }
+  if (!config.amount) {
+    config.amount = parseInt(await ask('Enter token amount: '));
+  }
+}
+
+async function getStagingHourOffset(config) {
+  if (!config.stagingHourOffset) {
+    config.stagingHourOffset = parseInt(process.env.STAGING_HOUR_OFFSET);
+  }
+  if (!config.stagingHourOffset) {
+    config.stagingHourOffset = parseInt(await ask('Enter hour offset (staging only): '));
+  }
+}
+
 async function getHolderPrivateKey(config) {
   if (!config.holderPrivateKey) {
-    config.holderPrivateKey = process.env.HOLDER_PRIVATE_KEY;
+    config.holderPrivateKey = parseInt(process.env.HOLDER_PRIVATE_KEY);
   }
   if (!config.holderPrivateKey) {
-    config.holderPrivateKey = await ask('Enter your Holder private key: ');
+    config.holderPrivateKey = parseInt(await ask('Enter your Holder private key: '));
   }
 }
 
@@ -132,10 +168,10 @@ async function getWorldIDIdentityManagerRouterAddress(config) {
 
 async function getWorldIDRouterGroupId(config) {
   if (!config.groupId) {
-    config.groupId = process.env.GROUP_ID;
+    config.groupId = parseInt(process.env.GROUP_ID);
   }
   if (!config.groupId) {
-    config.groupId = await ask('Enter WorldIDRouter group id: ');
+    config.groupId = parseInt(await ask('Enter WorldIDRouter group id: '));
   }
 }
 
@@ -170,6 +206,10 @@ async function getAirdropParameters(config) {
   await getWorldIDRouterGroupId(config);
   await getErc20Address(config);
   await getHolderAddress(config);
+  await getStartMonth(config);
+  await getStartYear(config);
+  await getAmount(config);
+  await getStagingHourOffset(config);
 
   await saveConfiguration(config);
 }
