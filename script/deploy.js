@@ -71,12 +71,21 @@ async function saveConfiguration(config) {
   fs.writeFileSync(CONFIG_FILENAME, data);
 }
 
+async function isStaging(config) {
+  if (config.isStaging === undefined) {
+    config.isStaging = process.env.STAGING;
+  }
+  if (config.isStaging === undefined) {
+    config.staging = await ask('Is staging? (y/n) ') === 'y';
+  }
+}
+
 async function getPrivateKey(config) {
   if (!config.privateKey) {
     config.privateKey = process.env.PRIVATE_KEY;
   }
   if (!config.privateKey) {
-    config.privateKey = await ask('Enter your private key: ');
+    config.privateKey = await ask('Enter deployer private key: ');
   }
 }
 
@@ -157,20 +166,10 @@ async function getSpenderAddress(config) {
   }
 }
 
-// async function getGrantAddress(config) {
-//   if (!config.grantAddress) {
-//     config.grantAddress = process.env.GRANT_ADDRESS;
-//   }
-//   if (!config.grantAddress) {
-//     config.grantAddress = await ask('Enter grant address: ');
-//   }
-// }
-
 async function getAirdropParameters(config) {
   await getWorldIDRouterGroupId(config);
   await getErc20Address(config);
   await getHolderAddress(config);
-  // await getGrantAddress(config);
 
   await saveConfiguration(config);
 }
@@ -178,6 +177,7 @@ async function getAirdropParameters(config) {
 async function deployAirdrop(config) {
   dotenv.config();
 
+  await isStaging(config);
   await getPrivateKey(config);
   await getEthereumRpcUrl(config);
   await getEtherscanApiKey(config);
@@ -233,6 +233,7 @@ async function main() {
     .action(async () => {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
+      delete config.staging; // allows get asked for this one
       await deployAirdrop(config);
       await saveConfiguration(config);
     });

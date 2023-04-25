@@ -38,14 +38,17 @@ contract DeployRecurringGrantDrop is Script {
     uint256 public groupId = abi.decode(vm.parseJson(json, ".groupId"), (uint256));
     address public erc20Address = abi.decode(vm.parseJson(json, ".erc20Address"), (address)); 
     address public holder = abi.decode(vm.parseJson(json, ".holderAddress"), (address));
-    
+    bool public staging = abi.decode(vm.parseJson(json, ".staging"), (bool));
 
     ERC20 public token = ERC20(erc20Address);
 
     function run() external {
         vm.startBroadcast(privateKey);
 
-        grant = new HourlyGrant();
+        IGrant grant;
+
+        if (staging) grant = new HourlyGrant();
+        else grant = new MonthlyGrant();
 
         airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
 
