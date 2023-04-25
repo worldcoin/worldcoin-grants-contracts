@@ -21,19 +21,9 @@ contract MonthlyGrant is IGrant {
         return 10_000_000_000;
     }
 
-    // @notice Checks whether a grantId is within the allowed time window.
+    // @notice Anything that is not the current grant is invalid.
     function checkValidity(uint256 grantId) external view override {
-        uint256 currentGrantId = this.getCurrentId();
-
-        // If the grantId is in the future, it is not valid
-        if (currentGrantId < grantId) {
-            revert InvalidGrant();
-        }
-
-        // If the grantId is too old, it is not valid
-        if (this.getCurrentId() > grantId + MAX_VALIDITY) {
-            revert InvalidGrant();
-        }
+        if (this.getCurrentId() != grantId) revert InvalidGrant();
     }
 
     /// @notice Returns the current year and month based on block.timestamp

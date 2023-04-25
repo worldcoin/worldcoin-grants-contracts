@@ -79,35 +79,6 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), monthlyGrant.getAmount(0));
     }
 
-    /// @notice Tests that the user is able to claim old grants if they are still valid.
-    function testCanClaimOld(uint256 worldIDRoot, uint256 nullifierHash) public {
-        vm.warp(startTime + 31 days);
-
-        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
-
-        assertEq(token.balanceOf(user), 0);
-
-        vm.prank(caller);
-        airdrop.claim(0, user, worldIDRoot, nullifierHash, proof);
-
-        assertEq(token.balanceOf(user), monthlyGrant.getAmount(0));
-    }
-
-    /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.
-    function testCannotClaimTooOld(uint256 worldIDRoot, uint256 nullifierHash) public {
-        vm.warp(startTime + 400 days);
-
-        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
-
-        assertEq(token.balanceOf(user), 0);
-
-        vm.expectRevert(IGrant.InvalidGrant.selector);
-        vm.prank(caller);
-        airdrop.claim(0, user, worldIDRoot, nullifierHash, proof);
-
-        assertEq(token.balanceOf(user), 0);
-    }
-
     /// @notice Tests that nullifier hash for the same action cannot be consumed twice
     function testCannotDoubleClaim(uint256 worldIDRoot, uint256 nullifierHash) public {
         vm.warp(startTime);
@@ -122,9 +93,26 @@ contract RecurringGrantDropTest is PRBTest {
 
         vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
         vm.prank(caller);
+        // claim grant 0
         airdrop.claim(0, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), monthlyGrant.getAmount(0));
+    }
+
+    /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.
+    function testCannotClaimPast(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(startTime + 31 days);
+
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        assertEq(token.balanceOf(user), 0);
+
+        vm.expectRevert(IGrant.InvalidGrant.selector);
+        vm.prank(caller);
+        // claim grant 0
+        airdrop.claim(0, user, worldIDRoot, nullifierHash, proof);
+
+        assertEq(token.balanceOf(user), 0);
     }
 
     /// @notice Tests that the user is *not* able to claim future grants.
@@ -137,6 +125,7 @@ contract RecurringGrantDropTest is PRBTest {
 
         vm.expectRevert(IGrant.InvalidGrant.selector);
         vm.prank(caller);
+        // claim grant 1
         airdrop.claim(1, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), 0);
