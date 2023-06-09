@@ -3,21 +3,21 @@ pragma solidity ^0.8.19;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import { IGrant } from './IGrant.sol';
 import {IWorldID} from "world-id-contracts/interfaces/IWorldID.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ByteHasher} from "world-id-contracts/libraries/ByteHasher.sol";
 
-/// @title World ID Airdrop example
+/// @title RecurringGrantDrop
 /// @author Worldcoin
-/// @notice Template contract for airdropping tokens to World ID users
-contract WorldIDAirdrop {
+contract RecurringGrantDrop {
     using ByteHasher for bytes;
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Thrown when trying to update the airdrop amount without being the manager
+    /// @notice Thrown when restricted functions are called by not allowed addresses
     error Unauthorized();
 
     /// @notice Thrown when attempting to reuse a nullifier
@@ -27,13 +27,13 @@ contract WorldIDAirdrop {
     ///                                  EVENTS                                ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Emitted when an airdrop is successfully claimed
-    /// @param receiver The address that received the airdrop
-    event AirdropClaimed(address receiver);
+    /// @notice Emitted when a grant is successfully claimed
+    /// @param receiver The address that received the tokens
+    event GrantClaimed(uint256 grantId, address receiver);
 
-    /// @notice Emitted when the airdropped amount is changed
-    /// @param amount The new amount that participants will receive
-    event AmountUpdated(uint256 amount);
+    /// @notice Emitted when the grant is changed
+    /// @param grant The new grant instance
+    event GrantUpdated(IGrant grant);
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
@@ -45,51 +45,47 @@ contract WorldIDAirdrop {
     /// @dev The World ID group whose participants can claim this airdrop
     uint256 internal immutable groupId;
 
-    /// @dev The World ID Action ID
-    uint256 internal immutable actionId;
-
-    /// @notice The ERC20 token airdropped to participants
+    /// @notice The ERC20 token airdropped
     ERC20 public immutable token;
 
     /// @notice The address that holds the tokens that are being airdropped
     /// @dev Make sure the holder has approved spending for this contract!
     address public immutable holder;
 
-    /// @notice The address that manages this airdrop, which is allowed to update the `airdropAmount`.
+    /// @notice The address that manages this airdrop
     address public immutable manager = msg.sender;
 
-    /// @notice The amount of tokens that participants will receive upon claiming
-    uint256 public airdropAmount;
+    /// @notice The     grant instance used
+    IGrant public grant;
 
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
     mapping(uint256 => bool) internal nullifierHashes;
+
+    /// @dev Allowed addresses to call `claim`
+    mapping(address => bool) internal allowedCallers;
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONSTRUCTOR                              ///
     //////////////////////////////////////////////////////////////////////////////
 
     /// @notice Deploys a WorldIDAirdrop instance
-    /// @param _worldIdRouter The WorldID router instance that will manage groups and verify proofs
-    /// @param _groupId The ID of the Semaphore group World ID is using (`1`)
-    /// @param _actionId The actionId as registered in the developer portal
-    /// @param _token The ERC20 token that will be airdropped to eligible participants
+    /// @param _worldIdRouter The WorldID router that will manage groups and verify proofs
+    /// @param _groupId The group ID of the World ID
+    /// @param _token The ERC20 token that will be airdropped
     /// @param _holder The address holding the tokens that will be airdropped
-    /// @param _airdropAmount The amount of tokens that each participant will receive upon claiming
-    /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
+    /// @param _grant The grant that contains the amounts and validity
     constructor(
         IWorldIDGroups _worldIdRouter,
         uint256 _groupId,
-        string memory _actionId,
         ERC20 _token,
         address _holder,
-        uint256 _airdropAmount
+        IGrant _grant
     ) {
         worldIdRouter = _worldIdRouter;
         groupId = _groupId;
-        actionId = abi.encodePacked(_actionId).hashToField();
         token = _token;
         holder = _holder;
-        airdropAmount = _airdropAmount;
+        grant = _grant;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -97,39 +93,72 @@ contract WorldIDAirdrop {
     //////////////////////////////////////////////////////////////////////////////
 
     /// @notice Claim the airdrop
+    /// @param grantId The grant ID to claim
     /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
     /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
     /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
-    function claim(address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
+    function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
         public
     {
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
-        worldIdRouter.verifyProof(
-            groupId,
-            root,
-            abi.encodePacked(receiver).hashToField(), // The signal of the proof
-            nullifierHash,
-            abi.encodePacked(actionId).hashToField(), // The external nullifier hash
-            proof
-        );
+        if (!allowedCallers[msg.sender]) revert Unauthorized();
+
+        checkClaim(grantId, receiver, root, nullifierHash, proof);
 
         nullifierHashes[nullifierHash] = true;
 
-        SafeTransferLib.safeTransferFrom(token, holder, receiver, airdropAmount);
+        SafeTransferLib.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
+
+        emit GrantClaimed(grantId, receiver);
+    }
+
+    /// @notice Check whether a claim is valid
+    /// @param grantId The grant ID to claim
+    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
+    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
+    /// @param nullifierHash The nullifier for this proof, preventing double signaling
+    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
+    function checkClaim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
+        public
+    {
+        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+        
+        grant.checkValidity(grantId);
+
+        worldIdRouter.verifyProof(
+            groupId,
+            root,
+            abi.encodePacked(receiver).hashToField(),
+            nullifierHash,
+            grantId,
+            proof
+        );
     }
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONFIG LOGIC                             ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Update the number of claimable tokens, for any addresses that haven't already claimed. Can only be called by the deployer
-    /// @param amount The new amount of tokens that should be airdropped
-    function updateAmount(uint256 amount) public {
+    /// @notice Add a caller to the list of allowed callers
+    /// @param _caller The address to add
+    function addAllowedCaller(address _caller) public {
         if (msg.sender != manager) revert Unauthorized();
+        allowedCallers[_caller] = true;
+    }
 
-        airdropAmount = amount;
-        emit AmountUpdated(amount);
+    /// @notice Remove a caller to the list of allowed callers
+    /// @param _caller The address to remove
+    function removeAllowedCaller(address _caller) public {
+        if (msg.sender != manager) revert Unauthorized();
+        allowedCallers[_caller] = false;
+    }
+
+    /// @notice Update the grant
+    /// @param _grant The new grant
+    function setGrant(IGrant _grant) public {
+        if (msg.sender != manager) revert Unauthorized();
+        grant = _grant;
+        emit GrantUpdated(_grant);
     }
 }

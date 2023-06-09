@@ -6,7 +6,7 @@ import { Command } from 'commander';
 import { execSync } from 'child_process';
 
 const DEFAULT_RPC_URL = 'http://localhost:8545';
-const CONFIG_FILENAME = 'scripts/.deploy-config.json';
+const CONFIG_FILENAME = 'script/.deploy-config.json';
 
 const ask = async question => {
   const rl = readline.createInterface({
@@ -23,9 +23,9 @@ const ask = async question => {
 };
 
 async function loadConfiguration(useConfig) {
-  if (!useConfig) {
-    return {};
-  }
+  // if (!useConfig) {
+  //   return {};
+  // }
 
   let answer = await ask(`Do you want to load configuration from prior runs? [Y/n]: `, 'bool');
   const spinner = ora('Configuration Loading').start();
@@ -71,12 +71,66 @@ async function saveConfiguration(config) {
   fs.writeFileSync(CONFIG_FILENAME, data);
 }
 
+async function isStaging(config) {
+  if (config.isStaging === undefined) {
+    config.isStaging = process.env.STAGING;
+  }
+  if (config.isStaging === undefined) {
+    config.staging = await ask('Is staging? (y/n) ') === 'y';
+  }
+}
+
 async function getPrivateKey(config) {
   if (!config.privateKey) {
     config.privateKey = process.env.PRIVATE_KEY;
   }
   if (!config.privateKey) {
-    config.privateKey = await ask('Enter your private key: ');
+    config.privateKey = await ask('Enter deployer private key: ');
+  }
+}
+
+async function getStartMonth(config) {
+  if (!config.startMonth) {
+    config.startMonth = parseInt(process.env.START_MONTH);
+  }
+  if (!config.startMonth) {
+    config.startMonth = parseInt(await ask('Enter start month: '));
+  }
+}
+
+async function getStartYear(config) {
+  if (!config.startYear) {
+    config.startYear = parseInt(process.env.START_YEAR);
+  }
+  if (!config.startYear) {
+    config.startYear = parseInt(await ask('Enter start year: '));
+  }
+}
+
+async function getAmount(config) {
+  if (!config.amount) {
+    config.amount = parseInt(process.env.AMOUNT);
+  }
+  if (!config.amount) {
+    config.amount = parseInt(await ask('Enter token amount: '));
+  }
+}
+
+async function getStartOffset(config) {
+  if (!config.startOffset) {
+    config.startOffset = parseInt(process.env.START_OFFSET);
+  }
+  if (!config.startOffset) {
+    config.startOffset = parseInt(await ask('Enter start offset: '));
+  }
+}
+
+async function getHolderPrivateKey(config) {
+  if (!config.holderPrivateKey) {
+    config.holderPrivateKey = parseInt(process.env.HOLDER_PRIVATE_KEY);
+  }
+  if (!config.holderPrivateKey) {
+    config.holderPrivateKey = parseInt(await ask('Enter your Holder private key: '));
   }
 }
 
@@ -114,19 +168,10 @@ async function getWorldIDIdentityManagerRouterAddress(config) {
 
 async function getWorldIDRouterGroupId(config) {
   if (!config.groupId) {
-    config.groupId = process.env.GROUP_ID;
+    config.groupId = parseInt(process.env.GROUP_ID);
   }
   if (!config.groupId) {
-    config.groupId = await ask('Enter WorldIDRouter group id: ');
-  }
-}
-
-async function getActionId(config) {
-  if (!config.actionId) {
-    config.actionId = process.env.ACTION_ID;
-  }
-  if (!config.actionId) {
-    config.actionId = await ask('Enter ActionId: ');
+    config.groupId = parseInt(await ask('Enter WorldIDRouter group id: '));
   }
 }
 
@@ -148,21 +193,23 @@ async function getHolderAddress(config) {
   }
 }
 
-async function getAirdropAmount(config) {
-  if (!config.airdropAmount) {
-    config.airdropAmount = process.env.AIRDROP_AMOUNT;
+async function getSpenderAddress(config) {
+  if (!config.spenderAddress) {
+    config.spenderAddress = process.env.SPENDER_ADDRESS;
   }
-  if (!config.airdropAmount) {
-    config.airdropAmount = await ask('Enter amount to airdrop: ');
+  if (!config.spenderAddress) {
+    config.spenderAddress = await ask('Enter Spender Address: ');
   }
 }
 
 async function getAirdropParameters(config) {
   await getWorldIDRouterGroupId(config);
-  await getActionId(config);
   await getErc20Address(config);
   await getHolderAddress(config);
-  await getAirdropAmount(config);
+  await getStartMonth(config);
+  await getStartYear(config);
+  await getAmount(config);
+  await getStartOffset(config);
 
   await saveConfiguration(config);
 }
@@ -170,6 +217,7 @@ async function getAirdropParameters(config) {
 async function deployAirdrop(config) {
   dotenv.config();
 
+  await isStaging(config);
   await getPrivateKey(config);
   await getEthereumRpcUrl(config);
   await getEtherscanApiKey(config);
@@ -181,91 +229,21 @@ async function deployAirdrop(config) {
 
   try {
     const data = execSync(
-      `forge script scripts/WorldIDAirdrop.s.sol:DeployWorldIDAirdrop --fork-url ${config.ethereumRpcUrl} \
+      `forge script script/RecurringGrantDrop.s.sol:DeployRecurringGrantDrop --fork-url ${config.ethereumRpcUrl} \
       --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
     );
     console.log(data.toString());
-    spinner.succeed('Deployed WorldIDAirdrop contract successfully!');
+    spinner.succeed('Deployed RecurringGrantDrop contract successfully!');
   } catch (err) {
     console.error(err);
-    spinner.fail('Deployment of WorldIDAirdrop has failed.');
-  }
-}
-
-async function deployWorldIDIdentityManagerRouterMock(config) {
-  dotenv.config();
-
-  const spinner = ora(`Deploying WorldIDIdentityManagerRouterMock contract...`).start();
-
-  try {
-    const data = execSync(
-      `forge script scripts/WorldIDIdentityManagerRouterMock.s.sol:DeployWorldIDIdentityManagerRouterMock --fork-url ${config.ethereumRpcUrl} \
-      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast -vvvv`
-    );
-    console.log(data.toString());
-    spinner.succeed('Deployed WorldIDIdentityManagerRouterMock contract successfully!');
-  } catch (err) {
-    console.error(err);
-    spinner.fail('Deployment of WorldIDIdentityManagerRouterMock has failed.');
-  }
-}
-
-async function deployMockAirdrop(config) {
-  dotenv.config();
-
-  await getPrivateKey(config);
-  await getEthereumRpcUrl(config);
-  await getEtherscanApiKey(config);
-  await deployWorldIDIdentityManagerRouterMock(config);
-  await getWorldIDIdentityManagerRouterAddress(config);
-  await saveConfiguration(config);
-  await getAirdropParameters(config);
-
-  const spinner = ora(`Deploying WorldIDAirdrop contract...`).start();
-
-  try {
-    const data = execSync(
-      `forge script scripts/WorldIDAirdrop.s.sol:DeployWorldIDAirdrop --fork-url ${config.ethereumRpcUrl} \
-      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast -vvvv`
-    );
-    console.log(data.toString());
-    spinner.succeed('Deployed WorldIDAirdrop contract successfully!');
-  } catch (err) {
-    console.error(err);
-    spinner.fail('Deployment of WorldIDAirdrop has failed.');
-  }
-}
-
-async function deployMockMultiAirdrop(config) {
-  dotenv.config();
-
-  await getPrivateKey(config);
-  await getEthereumRpcUrl(config);
-  await getEtherscanApiKey(config);
-  await deployWorldIDIdentityManagerRouterMock(config);
-  await getWorldIDIdentityManagerRouterAddress(config);
-  await saveConfiguration(config);
-  await getAirdropParameters(config);
-
-  const spinner = ora(`Deploying WorldIDAirdrop contract...`).start();
-
-  try {
-    const data = execSync(
-      `forge script scripts/WorldIDMultiAirdrop.s.sol:DeployWorldIDMultiAirdrop --fork-url ${config.ethereumRpcUrl} \
-      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast -vvvv`
-    );
-    console.log(data.toString());
-    spinner.succeed('Deployed WorldIDMultiAirdrop contract successfully!');
-  } catch (err) {
-    console.error(err);
-    spinner.fail('Deployment of WorldIDMultiAirdrop has failed.');
+    spinner.fail('Deployment of RecurringGrantDrop has failed.');
   }
 }
 
 async function setAllowance(config) {
   await getErc20Address(config);
-  await getHolderAddress(config);
-  await getAirdropAmount(config);
+  await getSpenderAddress(config);
+  await getHolderPrivateKey(config);
 
   await saveConfiguration(config);
 
@@ -273,7 +251,7 @@ async function setAllowance(config) {
 
   try {
     const data = execSync(
-      `forge script scripts/utils/SetAllowanceERC20.s.sol:SetAllowanceERC20 --fork-url ${config.ethereumRpcUrl} \
+      `forge script script/utils/SetAllowanceERC20.s.sol:SetAllowanceERC20 --fork-url ${config.ethereumRpcUrl} \
       --broadcast -vvvv`
     );
     console.log(data.toString());
@@ -295,44 +273,8 @@ async function main() {
     .action(async () => {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
+      delete config.staging; // allows get asked for this one
       await deployAirdrop(config);
-      await saveConfiguration(config);
-    });
-
-  program
-    .name('deploy-multi-aidrop')
-    .command('deploy-multi-airdrop')
-    .description('Interactively deploys the WorldIDMultiAirdrop contracts on Ethereum mainnet.')
-    .action(async () => {
-      const options = program.opts();
-      let config = await loadConfiguration(options.config);
-      await deployMultiAirdrop(config);
-      await saveConfiguration(config);
-    });
-
-  program
-    .name('mock-airdrop')
-    .command('mock-airdrop')
-    .description(
-      'Interactively deploys WorldIDIdentityManagerMock alongside with WorldIDAirdrop for testing.'
-    )
-    .action(async () => {
-      const options = program.opts();
-      let config = await loadConfiguration(options.config);
-      await deployMockAirdrop(config);
-      await saveConfiguration(config);
-    });
-
-  program
-    .name('mock-multi-airdrop')
-    .command('mock-multi-airdrop')
-    .description(
-      'Interactively deploys WorldIDIdentityManagerMock alongside with WorldIDMultiAirdrop for testing.'
-    )
-    .action(async () => {
-      const options = program.opts();
-      let config = await loadConfiguration(options.config);
-      await deployMockMultiAirdrop(config);
       await saveConfiguration(config);
     });
 
