@@ -8,6 +8,7 @@ import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {RecurringGrantDrop} from "src/RecurringGrantDrop.sol";
 import {MonthlyGrant} from "src/MonthlyGrant.sol";
 import {HourlyGrant} from "src/HourlyGrant.sol";
+import {WeeklyGrant} from "src/WeeklyGrant.sol";
 import {IGrant} from "src/IGrant.sol";
 
 /// @title Deployment script for RecurringGrantDrop
@@ -42,15 +43,15 @@ contract DeployRecurringGrantDrop is Script {
     uint256 public startMonth = abi.decode(vm.parseJson(json, ".startMonth"), (uint256));
     uint256 public startYear = abi.decode(vm.parseJson(json, ".startYear"), (uint256));
     uint256 public amount = abi.decode(vm.parseJson(json, ".amount"), (uint256));
-    uint256 public stagingHourOffset = abi.decode(vm.parseJson(json, ".stagingHourOffset"), (uint256));
+    uint256 public startOffset = abi.decode(vm.parseJson(json, ".startOffset"), (uint256));
 
     ERC20 public token = ERC20(erc20Address);
 
     function run() external {
         vm.startBroadcast(privateKey);
 
-        if (staging) grant = new HourlyGrant(stagingHourOffset, amount);
-        else grant = new MonthlyGrant(startMonth, startYear, amount);
+        if (staging) grant = new HourlyGrant(startOffset, amount);
+        else grant = new WeeklyGrant(startOffset, amount);
 
         airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
 

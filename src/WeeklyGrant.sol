@@ -3,11 +3,7 @@ pragma solidity ^0.8.19;
 
 import { IGrant } from './IGrant.sol';
 
-/////////////////////////////////////////
-/// ONLY USED FOR STAGING.
-/////////////////////////////////////////
-
-contract HourlyGrant is IGrant {
+contract WeeklyGrant is IGrant {
     uint256 internal immutable offset;
     uint256 internal immutable amount;
 
@@ -17,7 +13,7 @@ contract HourlyGrant is IGrant {
     }
 
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - offset) / 3600;
+        return (block.timestamp - offset) / (7*24*3600);
     }
 
     function getAmount(uint256) external view override returns (uint256) {

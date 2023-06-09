@@ -116,12 +116,12 @@ async function getAmount(config) {
   }
 }
 
-async function getStagingHourOffset(config) {
-  if (!config.stagingHourOffset) {
-    config.stagingHourOffset = parseInt(process.env.STAGING_HOUR_OFFSET);
+async function getStartOffset(config) {
+  if (!config.startOffset) {
+    config.startOffset = parseInt(process.env.START_OFFSET);
   }
-  if (!config.stagingHourOffset) {
-    config.stagingHourOffset = parseInt(await ask('Enter hour offset (staging only): '));
+  if (!config.startOffset) {
+    config.startOffset = parseInt(await ask('Enter start offset: '));
   }
 }
 
@@ -209,7 +209,7 @@ async function getAirdropParameters(config) {
   await getStartMonth(config);
   await getStartYear(config);
   await getAmount(config);
-  await getStagingHourOffset(config);
+  await getStartOffset(config);
 
   await saveConfiguration(config);
 }
