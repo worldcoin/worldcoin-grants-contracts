@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
@@ -11,7 +13,7 @@ import {ByteHasher} from "world-id-contracts/libraries/ByteHasher.sol";
 
 /// @title RecurringGrantDrop
 /// @author Worldcoin
-contract RecurringGrantDrop {
+contract RecurringGrantDrop is Ownable2Step{
     using ByteHasher for bytes;
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -31,10 +33,7 @@ contract RecurringGrantDrop {
     /// @dev Make sure the holder has approved spending for this contract!
     address public immutable holder;
 
-    /// @notice The address that manages this airdrop
-    address public immutable manager = msg.sender;
-
-    /// @notice The     grant instance used
+    /// @notice The grant instance used
     IGrant public grant;
 
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
@@ -61,6 +60,9 @@ contract RecurringGrantDrop {
 
     /// @notice Thrown when attempting to reuse a nullifier
     error InvalidNullifier();
+
+    /// @notice Emmitted in revert if the owner attempts to resign ownership.
+    error CannotRenounceOwnership();
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  EVENTS                                ///
@@ -106,7 +108,7 @@ contract RecurringGrantDrop {
         ERC20 _token,
         address _holder,
         IGrant _grant
-    ) {
+    ) Ownable() {
         if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
         if (address(_token) == address(0)) revert InvalidConfiguration();
         if (address(_holder) == address(0)) revert InvalidConfiguration();
@@ -176,8 +178,7 @@ contract RecurringGrantDrop {
 
     /// @notice Add a caller to the list of allowed callers
     /// @param _caller The address to add
-    function addAllowedCaller(address _caller) external {
-        if (msg.sender != manager) revert Unauthorized();
+    function addAllowedCaller(address _caller) external onlyOwner {
         if (_caller == address(0)) revert InvalidCallerAddress();
         allowedCallers[_caller] = true;
         
@@ -186,8 +187,7 @@ contract RecurringGrantDrop {
 
     /// @notice Remove a caller to the list of allowed callers
     /// @param _caller The address to remove
-    function removeAllowedCaller(address _caller) external {
-        if (msg.sender != manager) revert Unauthorized();
+    function removeAllowedCaller(address _caller) external onlyOwner {
         if (_caller == address(0)) revert InvalidCallerAddress();
         allowedCallers[_caller] = false;
 
@@ -196,11 +196,16 @@ contract RecurringGrantDrop {
 
     /// @notice Update the grant
     /// @param _grant The new grant
-    function setGrant(IGrant _grant) external {
-        if (msg.sender != manager) revert Unauthorized();
+    function setGrant(IGrant _grant) external onlyOwner {
         if (address(_grant) == address(0)) revert InvalidConfiguration();
 
         grant = _grant;
         emit GrantUpdated(_grant);
+    }
+
+    /// @notice Prevents the owner from renouncing ownership
+    /// @dev onlyOwner
+    function renounceOwnership() public view override onlyOwner {
+        revert CannotRenounceOwnership();
     }
 }
