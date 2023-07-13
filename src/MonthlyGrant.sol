@@ -15,6 +15,8 @@ contract MonthlyGrant is IGrant {
         (uint256 year, uint256 month) = calculateYearAndMonth();
         if (year < _startYear) revert InvalidConfiguration();
         if (((year - _startYear) * 12 + _startMonth) < month) revert InvalidConfiguration();
+        if (month < 1 || month > 12) revert InvalidConfiguration();
+        if (year < 2023 || year > 2100) revert InvalidConfiguration();
 
         startMonth = _startMonth;
         startYear = _startYear;
