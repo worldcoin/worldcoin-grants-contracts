@@ -19,7 +19,7 @@ contract HourlyGrant is IGrant {
     }
 
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - offset) / 3600;
+        return (block.timestamp - offset) / 1 hours;
     }
 
     function getAmount(uint256) external view override returns (uint256) {

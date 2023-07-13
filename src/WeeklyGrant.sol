@@ -9,13 +9,13 @@ contract WeeklyGrant is IGrant {
 
     constructor(uint256 _offset, uint256 _amount) {
         if (block.timestamp < _offset) revert InvalidConfiguration();
-        
+
         offset = _offset;
         amount = _amount;
     }
 
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - offset) / (7*24*3600);
+        return (block.timestamp - offset) / 7 days;
     }
 
     function getAmount(uint256) external view override returns (uint256) {
