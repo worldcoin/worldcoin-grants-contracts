@@ -8,18 +8,18 @@ import { IGrant } from './IGrant.sol';
 /////////////////////////////////////////
 
 contract HourlyGrant is IGrant {
-    uint256 internal immutable offset;
+    uint256 internal immutable startOffsetInSeconds;
     uint256 internal immutable amount;
 
-    constructor(uint256 _offset, uint256 _amount) {
-        if (block.timestamp < _offset) revert InvalidConfiguration();
+    constructor(uint256 _startOffsetInSeconds, uint256 _amount) {
+        if (block.timestamp < _startOffsetInSeconds) revert InvalidConfiguration();
 
-        offset = _offset;
+        startOffsetInSeconds = _startOffsetInSeconds;
         amount = _amount;
     }
 
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - offset) / 1 hours;
+        return (block.timestamp - startOffsetInSeconds) / 1 hours;
     }
 
     function getAmount(uint256) external view override returns (uint256) {
