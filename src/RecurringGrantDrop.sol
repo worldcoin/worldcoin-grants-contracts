@@ -32,6 +32,14 @@ contract RecurringGrantDrop {
     //////////////////////////////////////////////////////////////////////////////
 
     /// @notice Emitted when a grant is successfully claimed
+    /// @param _worldIdRouter The WorldID router that will manage groups and verify proofs
+    /// @param _groupId The group ID of the World ID
+    /// @param _token The ERC20 token that will be airdropped
+    /// @param _holder The address holding the tokens that will be airdropped
+    /// @param _grant The grant that contains the amounts and validity
+    event RecurringGrantDropInitialized(IWorldIDGroups _worldIdRouter, uint256 _groupId, ERC20 _token, address _holder, IGrant _grant);
+
+    /// @notice Emitted when a grant is successfully claimed
     /// @param receiver The address that received the tokens
     event GrantClaimed(uint256 grantId, address receiver);
 
@@ -98,6 +106,8 @@ contract RecurringGrantDrop {
         token = _token;
         holder = _holder;
         grant = _grant;
+
+        emit RecurringGrantDropInitialized(worldIdRouter, groupId, token, holder, grant);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
