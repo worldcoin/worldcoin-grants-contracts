@@ -20,6 +20,9 @@ contract RecurringGrantDrop {
     /// @notice Thrown when restricted functions are called by not allowed addresses
     error Unauthorized();
 
+    /// @notice Thrown when passed an invalid caller address
+    error InvalidCallerAddress();
+
     /// @notice Thrown when attempting to reuse a nullifier
     error InvalidNullifier();
 
@@ -152,6 +155,7 @@ contract RecurringGrantDrop {
     /// @param _caller The address to add
     function addAllowedCaller(address _caller) public {
         if (msg.sender != manager) revert Unauthorized();
+        if (_caller == address(0)) revert InvalidCallerAddress();
         allowedCallers[_caller] = true;
         
         emit AllowedCallerAdded(_caller);
@@ -161,6 +165,7 @@ contract RecurringGrantDrop {
     /// @param _caller The address to remove
     function removeAllowedCaller(address _caller) public {
         if (msg.sender != manager) revert Unauthorized();
+        if (_caller == address(0)) revert InvalidCallerAddress();
         allowedCallers[_caller] = false;
 
         emit AllowedCallerRemoved(_caller);
