@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import { IGrant } from './IGrant.sol';
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IGrant} from './IGrant.sol';
 import {IWorldID} from "world-id-contracts/interfaces/IWorldID.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ByteHasher} from "world-id-contracts/libraries/ByteHasher.sol";
@@ -119,7 +120,7 @@ contract RecurringGrantDrop {
 
         nullifierHashes[nullifierHash] = true;
 
-        SafeTransferLib.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
+        SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
 
         emit GrantClaimed(grantId, receiver);
     }
