@@ -122,7 +122,7 @@ contract RecurringGrantDrop {
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
     /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
     function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        public
+        external
     {
         if (!allowedCallers[msg.sender]) revert Unauthorized();
 
@@ -164,7 +164,7 @@ contract RecurringGrantDrop {
 
     /// @notice Add a caller to the list of allowed callers
     /// @param _caller The address to add
-    function addAllowedCaller(address _caller) public {
+    function addAllowedCaller(address _caller) external {
         if (msg.sender != manager) revert Unauthorized();
         if (_caller == address(0)) revert InvalidCallerAddress();
         allowedCallers[_caller] = true;
@@ -174,7 +174,7 @@ contract RecurringGrantDrop {
 
     /// @notice Remove a caller to the list of allowed callers
     /// @param _caller The address to remove
-    function removeAllowedCaller(address _caller) public {
+    function removeAllowedCaller(address _caller) external {
         if (msg.sender != manager) revert Unauthorized();
         if (_caller == address(0)) revert InvalidCallerAddress();
         allowedCallers[_caller] = false;
@@ -184,7 +184,7 @@ contract RecurringGrantDrop {
 
     /// @notice Update the grant
     /// @param _grant The new grant
-    function setGrant(IGrant _grant) public {
+    function setGrant(IGrant _grant) external {
         if (msg.sender != manager) revert Unauthorized();
         grant = _grant;
         emit GrantUpdated(_grant);
