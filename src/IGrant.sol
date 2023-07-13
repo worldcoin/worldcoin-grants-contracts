@@ -5,6 +5,9 @@ interface IGrant {
     /// @notice Error in case the grant is invalid.
     error InvalidGrant();
 
+    /// @notice Error in case the grant configuration is invalid.
+    error InvalidConfiguration();
+
     /// @notice Returns the current grant id.
     function getCurrentId() external view returns (uint256);
 

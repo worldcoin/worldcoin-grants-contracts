@@ -12,6 +12,8 @@ contract HourlyGrant is IGrant {
     uint256 internal immutable amount;
 
     constructor(uint256 _offset, uint256 _amount) {
+        if (block.timestamp < _offset) revert InvalidConfiguration();
+
         offset = _offset;
         amount = _amount;
     }

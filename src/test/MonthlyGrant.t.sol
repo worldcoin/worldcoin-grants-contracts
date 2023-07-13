@@ -15,6 +15,7 @@ contract MonthlyGrantTest is PRBTest {
     MonthlyGrant internal monthlyGrant;
 
     function setUp() public {
+        vm.warp(startTime);
         monthlyGrant = new MonthlyGrant(4, 2023, 1 ether);
     }
 

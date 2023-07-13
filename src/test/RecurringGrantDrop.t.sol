@@ -28,6 +28,7 @@ contract RecurringGrantDropTest is PRBTest {
     MonthlyGrant internal monthlyGrant;
 
     function setUp() public {
+        vm.warp(startTime);
         groupId = 1;
         token = new TestERC20();
         worldIDIdentityManagerRouterMock = new WorldIDIdentityManagerRouterMock();
