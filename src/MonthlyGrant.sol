@@ -23,7 +23,7 @@ contract MonthlyGrant is IGrant {
         amount = _amount;
     }
 
-    /// @notice Returns the current grant id starting from 0 (April 2023).
+    /// @notice Returns the current grant id starting from 0.
     function getCurrentId() external view override returns (uint256) {
         (uint256 year, uint256 month) = calculateYearAndMonth();
         return (year - startYear) * 12 + month - startMonth;
