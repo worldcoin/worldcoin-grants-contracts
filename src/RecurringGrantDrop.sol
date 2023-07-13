@@ -47,6 +47,12 @@ contract RecurringGrantDrop {
     ///                                  ERRORS                                ///
     //////////////////////////////////////////////////////////////////////////////
 
+    /// @notice Error in case the configuration is invalid.
+    error InvalidConfiguration();
+
+    /// @notice Error in case the receiver is zero address.
+    error InvalidReceiver();
+
     /// @notice Thrown when restricted functions are called by not allowed addresses
     error Unauthorized();
 
@@ -101,6 +107,11 @@ contract RecurringGrantDrop {
         address _holder,
         IGrant _grant
     ) {
+        if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
+        if (address(_token) == address(0)) revert InvalidConfiguration();
+        if (address(_holder) == address(0)) revert InvalidConfiguration();
+        if (address(_grant) == address(0)) revert InvalidConfiguration();
+
         worldIdRouter = _worldIdRouter;
         groupId = _groupId;
         token = _token;
@@ -145,6 +156,7 @@ contract RecurringGrantDrop {
         public
     {
         if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+        if (receiver == address(0)) revert InvalidReceiver();
         
         grant.checkValidity(grantId);
 
@@ -186,6 +198,8 @@ contract RecurringGrantDrop {
     /// @param _grant The new grant
     function setGrant(IGrant _grant) external {
         if (msg.sender != manager) revert Unauthorized();
+        if (address(_grant) == address(0)) revert InvalidConfiguration();
+
         grant = _grant;
         emit GrantUpdated(_grant);
     }
