@@ -35,6 +35,14 @@ contract RecurringGrantDrop {
     /// @param grant The new grant instance
     event GrantUpdated(IGrant grant);
 
+    /// @notice Emitted when an allowed caller is added
+    /// @param caller The new caller
+    event AllowedCallerAdded(address caller);
+
+    /// @notice Emitted when an allowed caller is removed
+    /// @param caller The new caller
+    event AllowedCallerRemoved(address caller);
+
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
@@ -145,6 +153,8 @@ contract RecurringGrantDrop {
     function addAllowedCaller(address _caller) public {
         if (msg.sender != manager) revert Unauthorized();
         allowedCallers[_caller] = true;
+        
+        emit AllowedCallerAdded(_caller);
     }
 
     /// @notice Remove a caller to the list of allowed callers
@@ -152,6 +162,8 @@ contract RecurringGrantDrop {
     function removeAllowedCaller(address _caller) public {
         if (msg.sender != manager) revert Unauthorized();
         allowedCallers[_caller] = false;
+
+        emit AllowedCallerRemoved(_caller);
     }
 
     /// @notice Update the grant
