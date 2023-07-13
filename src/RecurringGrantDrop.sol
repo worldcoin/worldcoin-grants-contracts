@@ -15,6 +15,35 @@ contract RecurringGrantDrop {
     using ByteHasher for bytes;
 
     ///////////////////////////////////////////////////////////////////////////////
+    ///                              CONFIG STORAGE                            ///
+    //////////////////////////////////////////////////////////////////////////////
+
+    /// @dev The WorldID router instance that will be used for managing groups and verifying proofs
+    IWorldIDGroups internal immutable worldIdRouter;
+
+    /// @dev The World ID group whose participants can claim this airdrop
+    uint256 internal immutable groupId;
+
+    /// @notice The ERC20 token airdropped
+    ERC20 public immutable token;
+
+    /// @notice The address that holds the tokens that are being airdropped
+    /// @dev Make sure the holder has approved spending for this contract!
+    address public immutable holder;
+
+    /// @notice The address that manages this airdrop
+    address public immutable manager = msg.sender;
+
+    /// @notice The     grant instance used
+    IGrant public grant;
+
+    /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
+    mapping(uint256 => bool) internal nullifierHashes;
+
+    /// @dev Allowed addresses to call `claim`
+    mapping(address => bool) internal allowedCallers;
+
+    ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
     //////////////////////////////////////////////////////////////////////////////
 
@@ -54,35 +83,6 @@ contract RecurringGrantDrop {
     /// @notice Emitted when an allowed caller is removed
     /// @param caller The new caller
     event AllowedCallerRemoved(address caller);
-
-    ///////////////////////////////////////////////////////////////////////////////
-    ///                              CONFIG STORAGE                            ///
-    //////////////////////////////////////////////////////////////////////////////
-
-    /// @dev The WorldID router instance that will be used for managing groups and verifying proofs
-    IWorldIDGroups internal immutable worldIdRouter;
-
-    /// @dev The World ID group whose participants can claim this airdrop
-    uint256 internal immutable groupId;
-
-    /// @notice The ERC20 token airdropped
-    ERC20 public immutable token;
-
-    /// @notice The address that holds the tokens that are being airdropped
-    /// @dev Make sure the holder has approved spending for this contract!
-    address public immutable holder;
-
-    /// @notice The address that manages this airdrop
-    address public immutable manager = msg.sender;
-
-    /// @notice The     grant instance used
-    IGrant public grant;
-
-    /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
-    mapping(uint256 => bool) internal nullifierHashes;
-
-    /// @dev Allowed addresses to call `claim`
-    mapping(address => bool) internal allowedCallers;
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONSTRUCTOR                              ///
