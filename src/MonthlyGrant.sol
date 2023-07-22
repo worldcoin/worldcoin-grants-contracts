@@ -12,12 +12,18 @@ contract MonthlyGrant is IGrant {
     /// @param _startYear The year of the first grant
     /// @param _amount The amount of tokens for each grant
     constructor(uint256 _startMonth, uint256 _startYear, uint256 _amount) {
+        if (_startMonth < 1 || _startMonth > 12) revert InvalidConfiguration();
+        if (_startYear < 2023 || _startYear > 2100) revert InvalidConfiguration();
+        (uint256 year, uint256 month) = calculateYearAndMonth();
+        if (year < _startYear) revert InvalidConfiguration();
+        if (((year - _startYear) * 12 + _startMonth) < month) revert InvalidConfiguration();
+
         startMonth = _startMonth;
         startYear = _startYear;
         amount = _amount;
     }
 
-    /// @notice Returns the current grant id starting from 0 (April 2023).
+    /// @notice Returns the current grant id starting from 0.
     function getCurrentId() external view override returns (uint256) {
         (uint256 year, uint256 month) = calculateYearAndMonth();
         return (year - startYear) * 12 + month - startMonth;
