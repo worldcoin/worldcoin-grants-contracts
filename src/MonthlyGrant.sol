@@ -12,11 +12,11 @@ contract MonthlyGrant is IGrant {
     /// @param _startYear The year of the first grant
     /// @param _amount The amount of tokens for each grant
     constructor(uint256 _startMonth, uint256 _startYear, uint256 _amount) {
+        if (_startMonth < 1 || _startMonth > 12) revert InvalidConfiguration();
+        if (_startYear < 2023 || _startYear > 2100) revert InvalidConfiguration();
         (uint256 year, uint256 month) = calculateYearAndMonth();
         if (year < _startYear) revert InvalidConfiguration();
         if (((year - _startYear) * 12 + _startMonth) < month) revert InvalidConfiguration();
-        if (month < 1 || month > 12) revert InvalidConfiguration();
-        if (year < 2023 || year > 2100) revert InvalidConfiguration();
 
         startMonth = _startMonth;
         startYear = _startYear;
