@@ -21,17 +21,17 @@ contract RecurringGrantDrop is Ownable2Step{
     //////////////////////////////////////////////////////////////////////////////
 
     /// @dev The WorldID router instance that will be used for managing groups and verifying proofs
-    IWorldIDGroups internal immutable worldIdRouter;
+    IWorldIDGroups public worldIdRouter;
 
     /// @dev The World ID group whose participants can claim this airdrop
-    uint256 internal immutable groupId;
+    uint256 public groupId;
 
     /// @notice The ERC20 token airdropped
-    ERC20 public immutable token;
+    ERC20 public token;
 
     /// @notice The address that holds the tokens that are being airdropped
     /// @dev Make sure the holder has approved spending for this contract!
-    address public immutable holder;
+    address public holder;
 
     /// @notice The grant instance used
     IGrant public grant;
@@ -79,6 +79,22 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @notice Emitted when a grant is successfully claimed
     /// @param receiver The address that received the tokens
     event GrantClaimed(uint256 grantId, address receiver);
+
+    /// @notice Emitted when the worldIdRouter is changed
+    /// @param worldIdRouter The new worldIdRouter instance
+    event WorldIdRouterUpdated(IWorldIDGroups worldIdRouter);
+
+    /// @notice Emitted when the groupId is changed
+    /// @param groupId The new groupId
+    event GroupIdUpdated(uint256 groupId);
+
+    /// @notice Emitted when the token is changed
+    /// @param token The new token
+    event TokenUpdated(ERC20 token);
+
+    /// @notice Emitted when the holder is changed
+    /// @param holder The new holder
+    event HolderUpdated(address holder);
 
     /// @notice Emitted when the grant is changed
     /// @param grant The new grant instance
@@ -192,6 +208,41 @@ contract RecurringGrantDrop is Ownable2Step{
         allowedCallers[_caller] = false;
 
         emit AllowedCallerRemoved(_caller);
+    }
+
+    /// @notice Update the worldIdRouter
+    /// @param _worldIdRouter The new worldIdRouter
+    function setWorldIdRouter(IWorldIDGroups _worldIdRouter) external onlyOwner {
+        if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
+
+        worldIdRouter = _worldIdRouter;
+        emit WorldIdRouterUpdated(_worldIdRouter);
+    }
+
+    /// @notice Update the groupId
+    /// @param _groupId The new worldIdRouter
+    function setGroupId(uint256 _groupId) external onlyOwner {
+        groupId = _groupId;
+
+        emit GroupIdUpdated(_groupId);
+    }
+
+    /// @notice Update the token
+    /// @param _token The new token
+    function setToken(ERC20 _token) external onlyOwner {
+        if (address(_token) == address(0)) revert InvalidConfiguration();
+        token = _token;
+        
+        emit TokenUpdated(_token);
+    }
+
+    /// @notice Update the holder
+    /// @param _holder The new holder
+    function setHolder(address _holder) external onlyOwner {
+        if (address(_holder) == address(0)) revert InvalidConfiguration();
+        holder = _holder;
+        
+        emit HolderUpdated(holder);
     }
 
     /// @notice Update the grant
