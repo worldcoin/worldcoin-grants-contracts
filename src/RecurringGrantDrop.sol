@@ -21,10 +21,10 @@ contract RecurringGrantDrop is Ownable2Step{
     //////////////////////////////////////////////////////////////////////////////
 
     /// @dev The WorldID router instance that will be used for managing groups and verifying proofs
-    IWorldIDGroups internal worldIdRouter;
+    IWorldIDGroups public worldIdRouter;
 
     /// @dev The World ID group whose participants can claim this airdrop
-    uint256 internal groupId;
+    uint256 public groupId;
 
     /// @notice The ERC20 token airdropped
     ERC20 public token;
