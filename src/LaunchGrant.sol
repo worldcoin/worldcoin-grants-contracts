@@ -20,7 +20,7 @@ contract LaunchGrant is IGrant {
         // Monday, 21 August 2023 07:00:00 until Monday, 28 August 2023 06:59:59 (1 week)
         if (currentTime < launchDayTimestampInSeconds + 5 weeks) return 16;
         // Biweekly grants starting Monday, 28 August 2023 07:00:00
-        return (currentTime - startWeeklyOffsetInSeconds) / 2 weeks;
+        return (currentTime - launchDayTimestampInSeconds - 5 weeks) / 2 weeks + 17;
     }
 
     function getAmount(uint256 grantId) external pure override returns (uint256) {
