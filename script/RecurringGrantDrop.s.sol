@@ -51,7 +51,7 @@ contract DeployRecurringGrantDrop is Script {
         vm.startBroadcast(privateKey);
 
         if (staging) grant = new HourlyGrant(startOffset, amount);
-        else grant = new LaunchGrant(startOffset);
+        else grant = new LaunchGrant();
 
         airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
 
