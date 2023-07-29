@@ -18,7 +18,7 @@ node_modules
 *.env
 *.log
 
-script/.deploy-config.json
+script/.deploy-config*
 yarn-debug.log*
 yarn-error.log*
 
