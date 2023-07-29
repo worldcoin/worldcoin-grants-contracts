@@ -9,13 +9,10 @@ import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IGrant} from './IGrant.sol';
 import {IWorldID} from "world-id-contracts/interfaces/IWorldID.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
-import {ByteHasher} from "world-id-contracts/libraries/ByteHasher.sol";
 
 /// @title RecurringGrantDrop
 /// @author Worldcoin
 contract RecurringGrantDrop is Ownable2Step{
-    using ByteHasher for bytes;
-
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
@@ -124,7 +121,7 @@ contract RecurringGrantDrop is Ownable2Step{
         ERC20 _token,
         address _holder,
         IGrant _grant
-    ) Ownable() {
+    ) Ownable(msg.sender) {
         if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
         if (address(_token) == address(0)) revert InvalidConfiguration();
         if (address(_holder) == address(0)) revert InvalidConfiguration();
@@ -175,13 +172,13 @@ contract RecurringGrantDrop is Ownable2Step{
     {
         if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
         if (receiver == address(0)) revert InvalidReceiver();
-        
+
         grant.checkValidity(grantId);
 
         worldIdRouter.verifyProof(
-            groupId,
             root,
-            abi.encodePacked(receiver).hashToField(),
+            groupId,
+            uint256(keccak256(abi.encodePacked(receiver))) >> 8,
             nullifierHash,
             grantId,
             proof
