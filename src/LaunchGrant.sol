@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import { IGrant } from './IGrant.sol';
 
 contract LaunchGrant is IGrant {
-    uint256 internal immutable startWeeklyOffsetInSeconds   = 1682319600; // Monday, 24 April 2023 07:00:00
     uint256 internal immutable launchDayTimestampInSeconds  = 1690182000; // Monday, 24 July 2023 07:00:00
 
     function getCurrentId() external view override returns (uint256) {
@@ -22,8 +21,6 @@ contract LaunchGrant is IGrant {
     }
 
     function getAmount(uint256 grantId) external pure override returns (uint256) {
-        if (grantId < 12)  return 0;
-        if (grantId == 12) return 1  * 10**18;
         if (grantId == 13) return 25 * 10**18;
         if (grantId == 14) return 15 * 10**18;
         if (grantId == 15) return 5  * 10**18;
