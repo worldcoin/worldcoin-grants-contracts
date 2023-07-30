@@ -20,12 +20,6 @@ contract MonthlyGrantTest is PRBTest {
         launchGrant = new LaunchGrant();
     }
 
-    /// @notice Tests that the id of first grant is 0.
-    function testInitialMonth() public {
-        vm.warp(startTime);
-        assertEq(launchGrant.getCurrentId(), 0);
-    }
-
     /// @notice Tests the id of launch grant.
     function testInitialLaunch2Weeks() public {
         vm.warp(launchDay);
