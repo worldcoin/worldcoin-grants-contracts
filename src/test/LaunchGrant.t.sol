@@ -24,8 +24,10 @@ contract MonthlyGrantTest is PRBTest {
     function testInitialLaunch2Weeks() public {
         vm.warp(launchDay);
         assertEq(launchGrant.getCurrentId(), 13);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 25*10**18);
         vm.warp(launchDay + 2 weeks - 1);
         assertEq(launchGrant.getCurrentId(), 13);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 25*10**18);
     }
 
     /// @notice Tests the single weeks after launch.
@@ -34,26 +36,24 @@ contract MonthlyGrantTest is PRBTest {
         assertEq(startWeekly, launchDay + 2 weeks);
         vm.warp(startWeekly);
         assertEq(launchGrant.getCurrentId(), 14);
-
-        vm.warp(startWeekly + 1 weeks);
-        assertEq(launchGrant.getCurrentId(), 15);
-
-        vm.warp(startWeekly + 2 weeks);
-        assertEq(launchGrant.getCurrentId(), 16);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 10*10**18);
     }
 
     /// @notice Tests switch to biweekly.
     function testBiWeeklySwitch() public {
-        uint startBiweekly = 1693206000; // Monday, 28 August 2023 07:00:00
-        assertEq(startBiweekly, launchDay + 5 weeks);
+        uint startBiweekly = 1691996400; // Monday, 14 August 2023 07:00:00
+        assertEq(startBiweekly, launchDay + 3 weeks);
         vm.warp(startBiweekly);
-        assertEq(launchGrant.getCurrentId(), 17);
+        assertEq(launchGrant.getCurrentId(), 15);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3*10**18);
 
         vm.warp(startBiweekly + 2 weeks);
-        assertEq(launchGrant.getCurrentId(), 18);
+        assertEq(launchGrant.getCurrentId(), 16);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 2*10**18);
 
         vm.warp(startBiweekly + 4 weeks);
-        assertEq(launchGrant.getCurrentId(), 19);
+        assertEq(launchGrant.getCurrentId(), 17);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 2*10**18);
     }
 
 }
