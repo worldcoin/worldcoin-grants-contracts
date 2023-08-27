@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import { IGrant } from './IGrant.sol';
 
 contract LaunchGrant is IGrant {
-    uint256 internal immutable launchDayTimestampInSeconds  = 1690182000; // Monday, 24 July 2023 07:00:00
+    uint256 internal immutable launchDayTimestampInSeconds  = 1690167600; // Monday, 24 July 2023 03:00:00
 
     function getCurrentId() external view override returns (uint256) {
         uint weeksSinceLaunch = (block.timestamp - launchDayTimestampInSeconds) / 1 weeks;

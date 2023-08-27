@@ -11,12 +11,10 @@ import {LaunchGrant} from "../LaunchGrant.sol";
 /// @notice Contains tests for the launch grant claims.
 /// @author Worldcoin
 contract MonthlyGrantTest is PRBTest {
-    uint256 public startTime = 1682319600; // Monday, 24 April 2023 07:00:00
-    uint256 public launchDay = 1690182000; // Monday, 24 July 2023 07:00:00
+    uint256 public launchDay = 1690167600; // Monday, 24 July 2023 03:00:00
     LaunchGrant internal launchGrant;
 
     function setUp() public {
-        vm.warp(startTime);
         launchGrant = new LaunchGrant();
     }
 
@@ -32,7 +30,7 @@ contract MonthlyGrantTest is PRBTest {
 
     /// @notice Tests the single weeks after launch.
     function testConsecutiveSpecialWeeks() public {
-        uint startWeekly = 1691391600; // Monday, 7 August 2023 07:00:00
+        uint startWeekly = 1691377200; // Monday, 7 August 2023 03:00:00
         assertEq(startWeekly, launchDay + 2 weeks);
         vm.warp(startWeekly);
         assertEq(launchGrant.getCurrentId(), 14);
@@ -41,7 +39,7 @@ contract MonthlyGrantTest is PRBTest {
 
     /// @notice Tests switch to biweekly.
     function testBiWeeklySwitch() public {
-        uint startBiweekly = 1691996400; // Monday, 14 August 2023 07:00:00
+        uint startBiweekly = 1691982000; // Monday, 14 August 2023 03:00:00
         assertEq(startBiweekly, launchDay + 3 weeks);
         vm.warp(startBiweekly);
         assertEq(launchGrant.getCurrentId(), 15);
