@@ -47,7 +47,7 @@ contract MonthlyGrantTest is PRBTest {
 
         vm.warp(startBiweekly + 2 weeks);
         assertEq(launchGrant.getCurrentId(), 16);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 2*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3*10**18);
 
         vm.warp(startBiweekly + 4 weeks);
         assertEq(launchGrant.getCurrentId(), 17);

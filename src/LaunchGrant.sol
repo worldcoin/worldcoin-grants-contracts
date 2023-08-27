@@ -19,6 +19,7 @@ contract LaunchGrant is IGrant {
         if (grantId == 13) return 25 * 10**18;
         if (grantId == 14) return 10 * 10**18;
         if (grantId == 15) return 3  * 10**18;
+        if (grantId == 16) return 3  * 10**18;
         return 2 * 10**18;
     }
 
