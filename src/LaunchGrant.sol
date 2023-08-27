@@ -8,9 +8,9 @@ contract LaunchGrant is IGrant {
 
     function getCurrentId() external view override returns (uint256) {
         uint weeksSinceLaunch = (block.timestamp - launchDayTimestampInSeconds) / 1 weeks;
-        // Monday, 24 July 2023 07:00:00 until Monday, 07 August 2023 06:59:59 (2 weeks)
+        // Monday, 24 July 2023 03:00:00 until Monday, 07 August 2023 02:59:59 (2 weeks)
         if (weeksSinceLaunch < 2) return 13;
-        // Monday, 07 August 2023 07:00:00 until Monday, 14 August 2023 06:59:59 (1 week)
+        // Monday, 07 August 2023 03:00:00 until Monday, 14 August 2023 02:59:59 (1 week)
         if (weeksSinceLaunch < 3) return 14;
         return 15 + (weeksSinceLaunch - 3) / 2;
     }
