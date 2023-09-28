@@ -150,7 +150,7 @@ contract RecurringGrantDrop is Ownable2Step{
     function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
         external
     {
-        if (!allowedCallers[msg.sender]) revert Unauthorized();
+        // if (!allowedCallers[msg.sender]) revert Unauthorized();
 
         checkClaim(grantId, receiver, root, nullifierHash, proof);
 

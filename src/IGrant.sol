@@ -19,4 +19,6 @@ interface IGrant {
     /// @notice Checks whether a grant is valid.
     /// @param grantId The grant id to check.
     function checkValidity(uint256 grantId) external view;
+
+    function calculateId(uint256 timestamp) external view returns (uint256);
 }

@@ -19,7 +19,11 @@ contract HourlyGrant is IGrant {
     }
 
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - startOffsetInSeconds) / 1 hours;
+        return this.calculateId(block.timestamp);
+    }
+
+    function calculateId(uint256 timestamp) external view override returns (uint256) {
+        return (timestamp - startOffsetInSeconds) / 3 hours;
     }
 
     function getAmount(uint256) external view override returns (uint256) {
@@ -27,6 +31,6 @@ contract HourlyGrant is IGrant {
     }
 
     function checkValidity(uint256 grantId) external view override{
-        if (this.getCurrentId() != grantId) revert InvalidGrant();
+        // if (this.getCurrentId() != grantId) revert InvalidGrant();
     }
 }

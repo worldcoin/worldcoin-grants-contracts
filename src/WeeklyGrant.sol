@@ -14,8 +14,13 @@ contract WeeklyGrant is IGrant {
         amount = _amount;
     }
 
+    /// @notice Returns the current grant id starting from 0.
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - startOffsetInSeconds) / 7 days;
+        return this.calculateId(block.timestamp);
+    }
+
+    function calculateId(uint256 timestamp) external view override returns (uint256) {
+        return (timestamp - startOffsetInSeconds) / 7 days;
     }
 
     function getAmount(uint256) external view override returns (uint256) {

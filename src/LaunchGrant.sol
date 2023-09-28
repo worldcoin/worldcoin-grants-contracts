@@ -6,13 +6,17 @@ import { IGrant } from './IGrant.sol';
 contract LaunchGrant is IGrant {
     uint256 internal immutable launchDayTimestampInSeconds  = 1690182000; // Monday, 24 July 2023 07:00:00
 
-    function getCurrentId() external view override returns (uint256) {
-        uint weeksSinceLaunch = (block.timestamp - launchDayTimestampInSeconds) / 1 weeks;
+    function calculateId(uint256 timestamp) external pure returns (uint256) {
+        uint weeksSinceLaunch = (timestamp - launchDayTimestampInSeconds) / 1 weeks;
         // Monday, 24 July 2023 07:00:00 until Monday, 07 August 2023 06:59:59 (2 weeks)
         if (weeksSinceLaunch < 2) return 13;
         // Monday, 07 August 2023 07:00:00 until Monday, 14 August 2023 06:59:59 (1 week)
         if (weeksSinceLaunch < 3) return 14;
         return 15 + (weeksSinceLaunch - 3) / 2;
+    }
+
+    function getCurrentId() external view override returns (uint256) {
+        return this.calculateId(block.timestamp);
     }
 
     function getAmount(uint256 grantId) external pure override returns (uint256) {

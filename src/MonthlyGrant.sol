@@ -14,7 +14,7 @@ contract MonthlyGrant is IGrant {
     constructor(uint256 _startMonth, uint256 _startYear, uint256 _amount) {
         if (_startMonth < 1 || _startMonth > 12) revert InvalidConfiguration();
         if (_startYear < 2023 || _startYear > 2100) revert InvalidConfiguration();
-        (uint256 year, uint256 month) = calculateYearAndMonth();
+        (uint256 year, uint256 month) = calculateYearAndMonth(block.timestamp);
         if (year < _startYear) revert InvalidConfiguration();
         if (((year - _startYear) * 12 + _startMonth) < month) revert InvalidConfiguration();
 
@@ -25,7 +25,11 @@ contract MonthlyGrant is IGrant {
 
     /// @notice Returns the current grant id starting from 0.
     function getCurrentId() external view override returns (uint256) {
-        (uint256 year, uint256 month) = calculateYearAndMonth();
+        return this.calculateId(block.timestamp);
+    }
+
+    function calculateId(uint256 timestamp) external view override returns (uint256) {
+        (uint256 year, uint256 month) = calculateYearAndMonth(timestamp);
         return (year - startYear) * 12 + month - startMonth;
     }
 
@@ -44,8 +48,8 @@ contract MonthlyGrant is IGrant {
     /// @notice Algorithm is taken from https://aa.usno.navy.mil/faq/JD_formula
     /// @return year The current year
     /// @return month The current month
-    function calculateYearAndMonth() internal view returns (uint256, uint256) {
-        uint256 d = block.timestamp / 86400 + 2440588;
+    function calculateYearAndMonth(uint256 timestamp) internal pure returns (uint256, uint256) {
+        uint256 d = timestamp / 86400 + 2440588;
         uint256 L = d + 68569;
         uint256 N = (4 * L) / 146097;
         L = L - (146097 * N + 3) / 4;

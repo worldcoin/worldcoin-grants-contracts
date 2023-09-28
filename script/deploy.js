@@ -240,6 +240,32 @@ async function deployAirdrop(config) {
   }
 }
 
+async function deployReservations(config) {
+  dotenv.config();
+
+  await isStaging(config);
+  await getPrivateKey(config);
+  await getEthereumRpcUrl(config);
+  await getEtherscanApiKey(config);
+  await getWorldIDIdentityManagerRouterAddress(config);
+  await saveConfiguration(config);
+  await getAirdropParameters(config);
+
+  const spinner = ora(`Deploying WorldIDAirdrop contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/GrantReservations.s.sol:DeployGrantReservations --fork-url ${config.ethereumRpcUrl} \
+      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed GrantReservations contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of GrantReservations has failed.');
+  }
+}
+
 async function setAllowance(config) {
   await getErc20Address(config);
   await getSpenderAddress(config);
@@ -275,6 +301,18 @@ async function main() {
       let config = await loadConfiguration(options.config);
       delete config.staging; // allows get asked for this one
       await deployAirdrop(config);
+      await saveConfiguration(config);
+    });
+
+  program
+    .name('deploy-reservations')
+    .command('deploy-reservations')
+    .description('Interactively deploys the Reservations contracts on Ethereum mainnet.')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      delete config.staging; // allows get asked for this one
+      await deployReservations(config);
       await saveConfiguration(config);
     });
 
