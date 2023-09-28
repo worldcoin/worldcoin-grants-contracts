@@ -31,6 +31,6 @@ contract HourlyGrant is IGrant {
     }
 
     function checkValidity(uint256 grantId) external view override{
-        // if (this.getCurrentId() != grantId) revert InvalidGrant();
+        if (this.getCurrentId() != grantId) revert InvalidGrant();
     }
 }
