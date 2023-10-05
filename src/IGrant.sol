@@ -21,4 +21,6 @@ interface IGrant {
     function checkValidity(uint256 grantId) external view;
 
     function calculateId(uint256 timestamp) external view returns (uint256);
+
+    function checkReservationValidity(uint256 timestamp) external view;
 }

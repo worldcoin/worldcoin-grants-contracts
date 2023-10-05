@@ -44,7 +44,7 @@ contract RecurringGrantDropTest is PRBTest {
         vm.prank(manager);
         airdrop = new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, monthlyGrant);
         vm.prank(manager);
-        airdrop.addAllowedCaller(caller);
+        airdrop.addAllowedSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
 
         ///////////////////////////////////////////////////////////////////
         ///                            LABELS                           ///

@@ -5,7 +5,6 @@ import {Script} from "forge-std/Script.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {RecurringGrantDrop} from "src/RecurringGrantDrop.sol";
-import {GrantReservations} from "src/GrantReservations.sol";
 import {MonthlyGrant} from "src/MonthlyGrant.sol";
 import {HourlyGrant} from "src/HourlyGrant.sol";
 import {WeeklyGrant} from "src/WeeklyGrant.sol";

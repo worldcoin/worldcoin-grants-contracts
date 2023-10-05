@@ -33,4 +33,14 @@ contract HourlyGrant is IGrant {
     function checkValidity(uint256 grantId) external view override{
         if (this.getCurrentId() != grantId) revert InvalidGrant();
     }
+
+    function checkReservationValidity(uint256 timestamp) external view override {
+        uint256 grantId = this.calculateId(timestamp);
+
+        // No future grants can be reserved and claimed.
+        if (grantId >= this.getCurrentId()) revert InvalidGrant();
+
+        // Reservations are only valid for 12 months.
+        if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
+    }
 }

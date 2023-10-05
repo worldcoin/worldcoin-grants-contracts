@@ -63,4 +63,14 @@ contract MonthlyGrant is IGrant {
         year = 100 * (N - 49) + year + L;
         return (year, month);
     }
+
+    function checkReservationValidity(uint256 timestamp) external view override {
+        uint256 grantId = this.calculateId(timestamp);
+
+        // No future grants can be reserved and claimed.
+        if (grantId >= this.getCurrentId()) revert InvalidGrant();
+
+        // Reservations are only valid for 12 months.
+        if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
+    }
 }

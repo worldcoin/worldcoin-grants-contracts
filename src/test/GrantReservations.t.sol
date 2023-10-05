@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import {PRBTest} from "@prb/test/PRBTest.sol";
 import {WorldIDIdentityManagerRouterMock} from "src/test/mock/WorldIDIdentityManagerRouterMock.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
-import {GrantReservations} from "../GrantReservations.sol";
 import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
 import {MonthlyGrant} from "../MonthlyGrant.sol";
 import {IGrant} from "../IGrant.sol";
@@ -27,7 +26,6 @@ contract RecurringGrantDropTest is PRBTest {
     uint256 public startTime = 1680307200; // Saturday, 1 April 2023 00:00:00 GMT
     TestERC20 internal token;
     WorldIDIdentityManagerRouterMock internal worldIDIdentityManagerRouterMock;
-    GrantReservations internal reservations;
     RecurringGrantDrop internal airdrop;
     MonthlyGrant internal monthlyGrant;
 
@@ -47,9 +45,7 @@ contract RecurringGrantDropTest is PRBTest {
         proof = [0, 0, 0, 0, 0, 0, 0, 0];
 
         airdrop = new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, monthlyGrant);
-        reservations = new GrantReservations(airdrop);
-        reservations.addAllowedSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        airdrop.addAllowedCaller(caller);
+        airdrop.addAllowedSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
 
         ///////////////////////////////////////////////////////////////////
         ///                            LABELS                           ///
@@ -68,8 +64,6 @@ contract RecurringGrantDropTest is PRBTest {
 
         // Approve spending from the airdrop contract
         vm.prank(holder);
-        token.approve(address(reservations), type(uint256).max);
-        vm.prank(holder);
         token.approve(address(airdrop), type(uint256).max);
     }
 
@@ -82,7 +76,7 @@ contract RecurringGrantDropTest is PRBTest {
 
         assertEq(token.balanceOf(user), 0);
 
-        reservations.claim(1680307200, user, worldIDRoot, nullifierHash, proof, signature);
+        airdrop.claimReserved(1680307200, user, worldIDRoot, nullifierHash, proof, signature);
 
         assertEq(token.balanceOf(user), monthlyGrant.getAmount(0));
     }
@@ -100,7 +94,7 @@ contract RecurringGrantDropTest is PRBTest {
 
         vm.warp(startTime + 5 weeks);
 
-        vm.expectRevert(GrantReservations.InvalidNullifier.selector);
-        reservations.claim(1680307200, user, worldIDRoot, nullifierHash, proof, signature);
+        vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
+        airdrop.claimReserved(1680307200, user, worldIDRoot, nullifierHash, proof, signature);
     }
 }
