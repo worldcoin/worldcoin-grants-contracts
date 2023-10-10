@@ -20,7 +20,11 @@ interface IGrant {
     /// @param grantId The grant id to check.
     function checkValidity(uint256 grantId) external view;
 
+    /// @notice Calculates the grant id for a given timestamp.
+    /// @param timestamp The timestamp to calculate the grant id for.
     function calculateId(uint256 timestamp) external view returns (uint256);
 
+    /// @notice Checks whether a reservation is valid.
+    /// @param timestamp The timestamp to check the reservation for.
     function checkReservationValidity(uint256 timestamp) external view;
 }

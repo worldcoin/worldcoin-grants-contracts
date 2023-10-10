@@ -44,7 +44,7 @@ contract RecurringGrantDrop is Ownable2Step{
     RecurringGrantDrop internal immutable PREVIOUS_CONTRACT = RecurringGrantDrop(0xe773335550b63eed23a6e60DCC4709106A1F653c);
 
     /// @dev Needs to be set to the previous contract's last grant ID
-    uint256 internal immutable RELEASE_GRANT_ID = 0;
+    uint256 internal immutable RELEASE_GRANT_ID = 19;
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
@@ -64,12 +64,6 @@ contract RecurringGrantDrop is Ownable2Step{
 
     /// @notice Thrown when passed an invalid caller address
     error UnauthorizedSigner();
-
-    /// @notice Thrown when restricted functions are called by not allowed addresses
-    error Unauthorized();
-
-    /// @notice Thrown when passed an invalid caller address
-    error InvalidCallerAddress();
 
     /// @notice Thrown when attempting to reuse a nullifier
     error InvalidNullifier();
@@ -184,8 +178,9 @@ contract RecurringGrantDrop is Ownable2Step{
     function checkClaim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
         public
     {
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
         if (receiver == address(0)) revert InvalidReceiver();
+
+        this.checkNullifier(grantId, receiver, root, nullifierHash, proof);
 
         grant.checkValidity(grantId);
 
@@ -219,7 +214,7 @@ contract RecurringGrantDrop is Ownable2Step{
         emit GrantClaimed(grantId, receiver);
     }
 
-    /// @notice Check whether a claim is valid
+    /// @notice Check whether a reservation is valid
     /// @param timestamp The timestamp of the reservation
     /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
     /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
@@ -256,7 +251,7 @@ contract RecurringGrantDrop is Ownable2Step{
         if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
 
         // If this is for a grant before the new deployment, check the previous contract.
-        if (grantId < RELEASE_GRANT_ID) {
+        if (grantId <= RELEASE_GRANT_ID) {
             try PREVIOUS_CONTRACT.checkClaim(grantId, receiver, root, nullifierHash, proof) {
                 // This should not happen since only claiming the current grant can succeed, which is already prohibited by the check above.
             } catch (bytes memory reason) {

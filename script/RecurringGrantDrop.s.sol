@@ -5,9 +5,7 @@ import {Script} from "forge-std/Script.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {RecurringGrantDrop} from "src/RecurringGrantDrop.sol";
-import {MonthlyGrant} from "src/MonthlyGrant.sol";
-import {HourlyGrant} from "src/HourlyGrant.sol";
-import {WeeklyGrant} from "src/WeeklyGrant.sol";
+import {StagingGrant} from "src/StagingGrant.sol";
 import {LaunchGrant} from "src/LaunchGrant.sol";
 import {IGrant} from "src/IGrant.sol";
 
@@ -50,18 +48,10 @@ contract DeployRecurringGrantDrop is Script {
     function run() external {
         vm.startBroadcast(privateKey);
 
-        if (staging) grant = new HourlyGrant(startOffset, amount);
+        if (staging) grant = new StagingGrant(startOffset, amount);
         else grant = new LaunchGrant();
 
         airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
-
-        // Allow relayer addresses
-        // airdrop.addAllowedCaller(address(0x65BF36D6499A504100EB504F0719271F5C4174ec));
-        // airdrop.addAllowedCaller(address(0xd8F7d2d62514895475aFe0C7d75F31390Dd40DE4));
-        // airdrop.addAllowedCaller(address(0xaBE494EaA4ED80de8583C49183E9cbdaDbc3b954));
-        // airdrop.addAllowedCaller(address(0x4399fa85585F90DA110d5BA150fF96C763bc0Aba));
-        // airdrop.addAllowedCaller(address(0xb54A5205eE454f48dDFc23CA26a3836Ba3daCC07));
-        // airdrop.addAllowedCaller(address(0xD2d9438FBcAC1352FEeaf5130B1D725e07CB3b97));
 
         vm.stopBroadcast();
     }
