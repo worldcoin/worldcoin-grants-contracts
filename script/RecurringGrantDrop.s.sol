@@ -5,8 +5,10 @@ import {Script} from "forge-std/Script.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {RecurringGrantDrop} from "src/RecurringGrantDrop.sol";
+import {RecurringGrantDropLegacy} from "src/RecurringGrantDropLegacy.sol";
 import {StagingGrant} from "src/StagingGrant.sol";
-import {LaunchGrant} from "src/LaunchGrant.sol";
+import {LaunchGrantLegacy} from "src/LaunchGrantLegacy.sol";
+import {WLDGrant} from "src/WLDGrant.sol";
 import {IGrant} from "src/IGrant.sol";
 
 /// @title Deployment script for RecurringGrantDrop
@@ -18,6 +20,10 @@ contract DeployRecurringGrantDrop is Script {
 
     RecurringGrantDrop public airdrop;
     IGrant grant;
+
+    RecurringGrantDropLegacy public airdropLegacy;
+    IGrant grantLegacy;
+
     ///////////////////////////////////////////////////////////////////
     ///                            CONFIG                           ///
     ///////////////////////////////////////////////////////////////////
@@ -49,9 +55,14 @@ contract DeployRecurringGrantDrop is Script {
         vm.startBroadcast(privateKey);
 
         if (staging) grant = new StagingGrant(startOffset, amount);
-        else grant = new LaunchGrant();
+        else grant = new WLDGrant();
 
         airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
+
+        if (!staging) {
+            grantLegacy = new LaunchGrantLegacy();
+            airdropLegacy = new RecurringGrantDropLegacy(worldIdRouter, groupId, token, holder, grantLegacy);
+        }
 
         vm.stopBroadcast();
     }

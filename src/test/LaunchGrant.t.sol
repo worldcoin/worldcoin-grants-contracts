@@ -5,17 +5,17 @@ import {PRBTest} from "@prb/test/PRBTest.sol";
 import {WorldIDIdentityManagerRouterMock} from "src/test/mock/WorldIDIdentityManagerRouterMock.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
 import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
-import {LaunchGrant} from "../LaunchGrant.sol";
+import {LaunchGrantLegacy} from "../LaunchGrantLegacy.sol";
 
 /// @title LaunchGrantTest
 /// @notice Contains tests for the launch grant claims.
 /// @author Worldcoin
 contract MonthlyGrantTest is PRBTest {
     uint256 public launchDay = 1690167600; // Monday, 24 July 2023 03:00:00
-    LaunchGrant internal launchGrant;
+    LaunchGrantLegacy internal launchGrant;
 
     function setUp() public {
-        launchGrant = new LaunchGrant();
+        launchGrant = new LaunchGrantLegacy();
     }
 
     /// @notice Tests the id of launch grant.

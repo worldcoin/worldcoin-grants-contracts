@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { IGrant } from './IGrant.sol';
 
-contract LaunchGrant is IGrant {
+contract LaunchGrantLegacy is IGrant {
     uint256 internal immutable launchDayTimestampInSeconds  = 1690167600; // Monday, 24 July 2023 03:00:00
 
     function calculateId(uint256 timestamp) external pure returns (uint256) {
