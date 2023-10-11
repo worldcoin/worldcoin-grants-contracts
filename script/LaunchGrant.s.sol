@@ -2,13 +2,13 @@ pragma solidity ^0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 
-import {LaunchGrant} from "src/LaunchGrant.sol";
+import {LaunchGrantLegacy} from "src/LaunchGrantLegacy.sol";
 
 /// @title Deployment script for LaunchGrant
 /// @author Worldcoin
 contract DeployLaunchGrant is Script {
 
-    LaunchGrant grant;
+    LaunchGrantLegacy grant;
 
     ///////////////////////////////////////////////////////////////////
     ///                            CONFIG                           ///
@@ -21,7 +21,7 @@ contract DeployLaunchGrant is Script {
 
     function run() external {
         vm.startBroadcast(privateKey);
-        new LaunchGrant();
+        new LaunchGrantLegacy();
         vm.stopBroadcast();
     }
 }
