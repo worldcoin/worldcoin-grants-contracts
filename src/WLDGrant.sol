@@ -30,7 +30,7 @@ contract WLDGrant is IGrant {
     function checkReservationValidity(uint256 timestamp) external view override {
         uint256 grantId = this.calculateId(timestamp);
 
-        // No future grants can be reserved and claimed.
+        // No future grants can be claimed.
         if (grantId >= this.getCurrentId()) revert InvalidGrant();
 
         // Only grants 20 and above can be reserved.
