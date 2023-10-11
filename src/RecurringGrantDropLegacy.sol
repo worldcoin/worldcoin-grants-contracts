@@ -7,13 +7,14 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IGrant} from './IGrant.sol';
+import {RecurringGrantDrop} from './RecurringGrantDrop.sol';
 import {IWorldID} from "world-id-contracts/interfaces/IWorldID.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
 /// @title RecurringGrantDrop
 /// @author Worldcoin
-contract RecurringGrantDrop is Ownable2Step{
+contract RecurringGrantDropLegacy is Ownable2Step{
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
@@ -39,6 +40,9 @@ contract RecurringGrantDrop is Ownable2Step{
 
     /// @dev Allowed addresses to sign a reservation
     mapping(address => bool) internal allowedSigners;
+
+    /// @dev The previous contract that was used for this airdrop
+    RecurringGrantDrop internal immutable PREVIOUS_CONTRACT = RecurringGrantDrop(0xe773335550b63eed23a6e60DCC4709106A1F653c);
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
@@ -174,7 +178,7 @@ contract RecurringGrantDrop is Ownable2Step{
     {
         if (receiver == address(0)) revert InvalidReceiver();
 
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+        this.checkNullifier(grantId, receiver, root, nullifierHash, proof);
 
         grant.checkValidity(grantId);
 
@@ -223,7 +227,7 @@ contract RecurringGrantDrop is Ownable2Step{
         if (receiver == address(0)) revert InvalidReceiver();
         if (timestamp > block.timestamp) revert InvalidTimestamp();
 
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+        this.checkNullifier(grantId, receiver, root, nullifierHash, proof);
 
         grant.checkReservationValidity(timestamp);
 
@@ -238,6 +242,21 @@ contract RecurringGrantDrop is Ownable2Step{
             grantId,
             proof
         );
+    }
+
+    /// @notice Check whether a nullifier has been used before in the previous contract.
+    function checkNullifier(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof) external {
+        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+
+        try PREVIOUS_CONTRACT.checkClaim(grantId, receiver, root, nullifierHash, proof) {
+            // This should not happen since only claiming the current grant can succeed, which is already prohibited by the check above.
+        } catch (bytes memory reason) {
+            // Check if nullifier has already been used.
+            if (bytes4(reason) == RecurringGrantDrop.InvalidNullifier.selector) {
+                revert InvalidNullifier();
+            }
+            // Any other error is fine.
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////

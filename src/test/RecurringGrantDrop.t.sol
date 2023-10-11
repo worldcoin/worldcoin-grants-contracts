@@ -5,7 +5,7 @@ import {PRBTest} from "@prb/test/PRBTest.sol";
 import {WorldIDIdentityManagerRouterMock} from "src/test/mock/WorldIDIdentityManagerRouterMock.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
 import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
-import {LaunchGrant} from "../LaunchGrant.sol";
+import {WLDGrant} from "../WLDGrant.sol";
 import {IGrant} from "../IGrant.sol";
 
 /// @title RecurringGrantDrop Tests
@@ -35,7 +35,7 @@ contract RecurringGrantDropTest is PRBTest {
         groupId = 1;
         token = new TestERC20();
         worldIDIdentityManagerRouterMock = new WorldIDIdentityManagerRouterMock();
-        grant = new LaunchGrant();
+        grant = new WLDGrant();
 
         manager = address(0x1);
         caller = address(0x2);
@@ -47,7 +47,7 @@ contract RecurringGrantDropTest is PRBTest {
         vm.prank(manager);
         airdrop = new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, grant);
         vm.prank(manager);
-        airdrop.addAllowedSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+        airdrop.addAllowedReservationSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
         reservationNullifierHash = uint256(0x04fcdedce0510a2d6fedf97a40c69822ab24b82e7682df8c0d2c2e8fefe6ebcd);
         signature = hex"4f9ff09561d798cd2dcf97e709c882d5ebf76d0dd30b13d5439bf655d47bf50c617b8c8f4f5145c999e05e54574cab68eff7620fa45a56f0ae7eb77302a043fb1c";
 
@@ -174,7 +174,7 @@ contract RecurringGrantDropTest is PRBTest {
 
     /// @notice Tests that the manager can update the grant
     function testUpdateGrant() public {
-        LaunchGrant grant2 = new LaunchGrant();
+        WLDGrant grant2 = new WLDGrant();
         assertEq(address(airdrop.grant()), address(grant));
 
         vm.prank(manager);
@@ -185,7 +185,7 @@ contract RecurringGrantDropTest is PRBTest {
 
     /// @notice Tests that anyone that is not the manager can't update grant
     function testCannotUpdateGrantIfNotManager(address notManager) public {
-        LaunchGrant grant2 = new LaunchGrant();
+        WLDGrant grant2 = new WLDGrant();
         vm.assume(notManager != manager && notManager != address(0));
         assertEq(address(airdrop.grant()), address(grant));
 
