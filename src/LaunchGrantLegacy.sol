@@ -30,7 +30,7 @@ contract LaunchGrantLegacy is IGrant {
     function checkValidity(uint256 grantId) external view override{
         if (this.getCurrentId() != grantId) revert InvalidGrant();
 
-        if (grantId >= 20) revert InvalidGrant();
+        if (grantId >= 21) revert InvalidGrant();
     }
 
     function checkReservationValidity(uint256 timestamp) external view override {
@@ -39,8 +39,8 @@ contract LaunchGrantLegacy is IGrant {
         // No future grants can be claimed.
         if (grantId >= this.getCurrentId()) revert InvalidGrant();
 
-        // Only until 19 can be redeemed through this contract.
-        if (grantId >= 20) revert InvalidGrant();
+        // Only until 20 can be redeemed through this contract.
+        if (grantId >= 21) revert InvalidGrant();
 
         // Reservations are only valid for 12 months.
         if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();

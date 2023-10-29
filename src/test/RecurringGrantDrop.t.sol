@@ -22,7 +22,7 @@ contract RecurringGrantDropTest is PRBTest {
     address public caller;
     address public holder;
     uint256 public startTime = 1690167600; // Monday, 24 July 2023 03:00:00
-    uint256 public claimTime = 1698030000; // Monday, 23 October 2023 03:00:00
+    uint256 public claimTime = 1699239600; // Monday, 23 October 2023 03:00:00
     uint256 public reservationNullifierHash;
     bytes public signature;
     TestERC20 internal token;
@@ -49,7 +49,7 @@ contract RecurringGrantDropTest is PRBTest {
         vm.prank(manager);
         airdrop.addAllowedReservationSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
         reservationNullifierHash = uint256(0x04fcdedce0510a2d6fedf97a40c69822ab24b82e7682df8c0d2c2e8fefe6ebcd);
-        signature = hex"4f9ff09561d798cd2dcf97e709c882d5ebf76d0dd30b13d5439bf655d47bf50c617b8c8f4f5145c999e05e54574cab68eff7620fa45a56f0ae7eb77302a043fb1c";
+        signature = hex"a7e4f7718dc83001950f51f478bd2c2029e464af4f37439f44555829bedeb3d9721cdb007b05ae399b028abae39171c475462c6c50a8e10c3994ac028be7be9e1b";
 
         ///////////////////////////////////////////////////////////////////
         ///                            LABELS                           ///
@@ -80,9 +80,9 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), 0);
 
         vm.prank(caller);
-        airdrop.claim(20, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
 
-        assertEq(token.balanceOf(user), grant.getAmount(20));
+        assertEq(token.balanceOf(user), grant.getAmount(21));
     }
 
     /// @notice Tests that nullifier hash for the same action cannot be consumed twice
@@ -93,14 +93,14 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), 0);
 
         vm.prank(caller);
-        airdrop.claim(20, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), grant.getAmount(0));
 
         vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
         vm.prank(caller);
         
-        airdrop.claim(20, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), grant.getAmount(0));
     }
@@ -109,8 +109,8 @@ contract RecurringGrantDropTest is PRBTest {
     function testCanClaimReservation(uint256 worldIDRoot) public {
         vm.warp(claimTime + 2 weeks);
 
-        assertEq(grant.getCurrentId(), 21);
-        assertEq(grant.calculateId(claimTime), 20);
+        assertEq(grant.getCurrentId(), 22);
+        assertEq(grant.calculateId(claimTime), 21);
 
         vm.assume(worldIDRoot != 0 && reservationNullifierHash != 0);
 
@@ -118,7 +118,7 @@ contract RecurringGrantDropTest is PRBTest {
 
         airdrop.claimReserved(claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature);
 
-        assertEq(token.balanceOf(user), grant.getAmount(20));
+        assertEq(token.balanceOf(user), grant.getAmount(21));
     }
 
     /// @notice Tests that the user is able to claim tokens if the World ID proof is valid
@@ -130,9 +130,9 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), 0);
 
         vm.prank(caller);
-        airdrop.claim(20, user, worldIDRoot, reservationNullifierHash, proof);
+        airdrop.claim(21, user, worldIDRoot, reservationNullifierHash, proof);
 
-        assertEq(token.balanceOf(user), grant.getAmount(20));
+        assertEq(token.balanceOf(user), grant.getAmount(21));
 
         vm.warp(claimTime + 2 weeks);
 
@@ -151,7 +151,7 @@ contract RecurringGrantDropTest is PRBTest {
         vm.expectRevert(IGrant.InvalidGrant.selector);
         vm.prank(caller);
 
-        airdrop.claim(20, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), 0);
     }
@@ -167,7 +167,7 @@ contract RecurringGrantDropTest is PRBTest {
         vm.expectRevert();
         vm.prank(caller);
 
-        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(22, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), 0);
     }

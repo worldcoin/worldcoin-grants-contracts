@@ -24,7 +24,7 @@ contract WLDGrant is IGrant {
     function checkValidity(uint256 grantId) external view override{
         if (this.getCurrentId() != grantId) revert InvalidGrant();
 
-        if (grantId < 20) revert InvalidGrant();
+        if (grantId < 21) revert InvalidGrant();
     }
 
     function checkReservationValidity(uint256 timestamp) external view override {
@@ -34,7 +34,7 @@ contract WLDGrant is IGrant {
         if (grantId >= this.getCurrentId()) revert InvalidGrant();
 
         // Only grants 20 and above can be reserved.
-        if (grantId < 20) revert InvalidGrant();
+        if (grantId < 21) revert InvalidGrant();
 
         // Reservations are only valid for 12 months.
         if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
