@@ -3,11 +3,9 @@ pragma solidity ^0.8.19;
 
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IGrant} from './IGrant.sol';
-import {IWorldID} from "world-id-contracts/interfaces/IWorldID.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
@@ -194,7 +192,7 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
+    /// @param signature The signature of the reservation
     function claimReserved(uint256 timestamp, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof, bytes calldata signature)
         external
     {

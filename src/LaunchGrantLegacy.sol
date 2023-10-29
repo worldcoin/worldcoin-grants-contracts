@@ -39,8 +39,8 @@ contract LaunchGrantLegacy is IGrant {
         // No future grants can be claimed.
         if (grantId >= this.getCurrentId()) revert InvalidGrant();
 
-        // Only grants 13 until 19 can be redeemed through this contract.
-        if (grantId < 13 || grantId >= 20) revert InvalidGrant();
+        // Only until 19 can be redeemed through this contract.
+        if (grantId >= 20) revert InvalidGrant();
 
         // Reservations are only valid for 12 months.
         if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
