@@ -146,50 +146,6 @@ contract RecurringGrantDropLegacy is Ownable2Step{
     ///                               CLAIM LOGIC                               ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Claim the airdrop
-    /// @param grantId The grant ID to claim
-    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
-    /// @param nullifierHash The nullifier for this proof, preventing double signaling
-    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
-    function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        external
-    {
-        checkClaim(grantId, receiver, root, nullifierHash, proof);
-
-        nullifierHashes[nullifierHash] = true;
-
-        SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
-
-        emit GrantClaimed(grantId, receiver);
-    }
-
-    /// @notice Check whether a claim is valid
-    /// @param grantId The grant ID to claim
-    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
-    /// @param nullifierHash The nullifier for this proof, preventing double signaling
-    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    function checkClaim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        public
-    {
-        if (receiver == address(0)) revert InvalidReceiver();
-
-        this.checkNullifier(grantId, receiver, root, nullifierHash, proof);
-
-        grant.checkValidity(grantId);
-
-        worldIdRouter.verifyProof(
-            root,
-            groupId,
-            uint256(keccak256(abi.encodePacked(receiver))) >> 8,
-            nullifierHash,
-            grantId,
-            proof
-        );
-    }
-
     /// @notice Claim a reserved grant from the past
     /// @param timestamp The timestamp of the reservation
     /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
