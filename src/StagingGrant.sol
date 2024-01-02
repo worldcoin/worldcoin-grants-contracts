@@ -7,7 +7,7 @@ import { IGrant } from './IGrant.sol';
 /// ONLY USED FOR STAGING.
 /////////////////////////////////////////
 
-contract HourlyGrant is IGrant {
+contract StagingGrant is IGrant {
     uint256 internal immutable startOffsetInSeconds;
     uint256 internal immutable amount;
 
@@ -19,7 +19,11 @@ contract HourlyGrant is IGrant {
     }
 
     function getCurrentId() external view override returns (uint256) {
-        return (block.timestamp - startOffsetInSeconds) / 1 hours;
+        return this.calculateId(block.timestamp);
+    }
+
+    function calculateId(uint256 timestamp) external view override returns (uint256) {
+        return (timestamp - startOffsetInSeconds) / 3 hours;
     }
 
     function getAmount(uint256) external view override returns (uint256) {
@@ -28,5 +32,15 @@ contract HourlyGrant is IGrant {
 
     function checkValidity(uint256 grantId) external view override{
         if (this.getCurrentId() != grantId) revert InvalidGrant();
+    }
+
+    function checkReservationValidity(uint256 timestamp) external view override {
+        uint256 grantId = this.calculateId(timestamp);
+
+        // No future grants can be reserved and claimed.
+        if (grantId >= this.getCurrentId()) revert InvalidGrant();
+
+        // Reservations are only valid for 12 months.
+        if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
     }
 }

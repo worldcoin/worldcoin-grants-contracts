@@ -6,12 +6,13 @@ import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IGrant} from './IGrant.sol';
+import {RecurringGrantDrop} from './RecurringGrantDrop.sol';
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
-/// @title RecurringGrantDrop
+/// @title RecurringGrantDropLegacy
 /// @author Worldcoin
-contract RecurringGrantDrop is Ownable2Step{
+contract RecurringGrantDropLegacy is Ownable2Step{
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
@@ -37,6 +38,9 @@ contract RecurringGrantDrop is Ownable2Step{
 
     /// @dev Allowed addresses to sign a reservation
     mapping(address => bool) internal allowedSigners;
+
+    /// @dev The previous contract that was used for this airdrop
+    RecurringGrantDrop internal immutable PREVIOUS_CONTRACT = RecurringGrantDrop(0xe773335550b63eed23a6e60DCC4709106A1F653c);
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
@@ -142,50 +146,6 @@ contract RecurringGrantDrop is Ownable2Step{
     ///                               CLAIM LOGIC                               ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Claim the airdrop
-    /// @param grantId The grant ID to claim
-    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
-    /// @param nullifierHash The nullifier for this proof, preventing double signaling
-    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
-    function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        external
-    {
-        checkClaim(grantId, receiver, root, nullifierHash, proof);
-
-        nullifierHashes[nullifierHash] = true;
-
-        SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
-
-        emit GrantClaimed(grantId, receiver);
-    }
-
-    /// @notice Check whether a claim is valid
-    /// @param grantId The grant ID to claim
-    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
-    /// @param nullifierHash The nullifier for this proof, preventing double signaling
-    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    function checkClaim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        public
-    {
-        if (receiver == address(0)) revert InvalidReceiver();
-
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
-
-        grant.checkValidity(grantId);
-
-        worldIdRouter.verifyProof(
-            root,
-            groupId,
-            uint256(keccak256(abi.encodePacked(receiver))) >> 8,
-            nullifierHash,
-            grantId,
-            proof
-        );
-    }
-
     /// @notice Claim a reserved grant from the past
     /// @param timestamp The timestamp of the reservation
     /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
@@ -196,8 +156,8 @@ contract RecurringGrantDrop is Ownable2Step{
     function claimReserved(uint256 timestamp, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof, bytes calldata signature)
         external
     {
-        uint256 grantId = grant.calculateId(timestamp);
         checkClaimReserved(timestamp, receiver, root, nullifierHash, proof, signature);
+        uint256 grantId = grant.calculateId(timestamp);
 
         nullifierHashes[nullifierHash] = true;
 
@@ -219,9 +179,9 @@ contract RecurringGrantDrop is Ownable2Step{
         uint256 grantId = grant.calculateId(timestamp);
 
         if (receiver == address(0)) revert InvalidReceiver();
-        if (timestamp > block.timestamp) revert InvalidTimestamp();
+        if (timestamp >= block.timestamp) revert InvalidTimestamp();
 
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+        this.checkNullifier(grantId, receiver, root, nullifierHash, proof);
 
         grant.checkReservationValidity(timestamp);
 
@@ -236,6 +196,21 @@ contract RecurringGrantDrop is Ownable2Step{
             grantId,
             proof
         );
+    }
+
+    /// @notice Check whether a nullifier has been used before in the previous contract.
+    function checkNullifier(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof) external {
+        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+
+        try PREVIOUS_CONTRACT.checkClaim(grantId, receiver, root, nullifierHash, proof) {
+            // This should not happen since only claiming the current grant can succeed, which is already prohibited by the check above.
+        } catch (bytes memory reason) {
+            // Check if nullifier has already been used.
+            if (bytes4(reason) == RecurringGrantDrop.InvalidNullifier.selector) {
+                revert InvalidNullifier();
+            }
+            // Any other error is fine.
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////
