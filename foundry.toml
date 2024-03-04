@@ -14,7 +14,8 @@ remappings = [
     '@prb/test/=lib/prb-test/src/',
     'ds-test/=lib/ds-test/src/',
     '@zk-kit/=lib/zk-kit/packages/',
-    '@openzeppelin/=lib/openzeppelin-contracts/'
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    '@v3-periphery/=lib/v3/v3-periphery/contracts'
 ]
 
 # The default is to optimise, but let's be clear about it.

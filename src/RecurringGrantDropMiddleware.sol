@@ -3,8 +3,9 @@ pragma solidity ^0.8.19;
 
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
-import { ERC20 } from "solmate/tokens/ERC20.sol";
-import { IRecurringGrantDrop } from "./IRecurringGrantDrop.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {IRecurringGrantDrop} from "./IRecurringGrantDrop.sol";
+import {ISwapRouter} from "v3-periphery/interfaces/ISwapRouter.sol";
 
 interface IChainlinkAggregator {
     function latestAnswer() external view returns (int256);
@@ -18,44 +19,83 @@ contract GrantMiddleware is Ownable2Step {
     /// @notice WLD ERC20 token
     ERC20 public immutable WLD = ERC20(0xdC6fF44d5d932Cbd77B52E5612Ba0529DC6226F1);
 
-    /// @notice USDC ERC20 token
-    ERC20 immutable USDC = ERC20(0x7F5c764cBc14f9669B88837ca1490cCa17c31607);
-
     /// @notice Chainlink oracle for WLD/USDC
-    IChainlinkAggregator immutable ORACLE = IChainlinkAggregator(0x4e1C6B168DCFD7758bC2Ab9d2865f1895813D236);
+    ISwapRouter immutable UNISWAP_ROUTER = ISwapRouter(0xb5fBFEBA9848664fd1a49dC2a250d9B5D1294f2a);
+
+    /// @notice Grant address
+    IRecurringGrantDrop public grantAddress =
+        IRecurringGrantDrop(0x7B46fFbC976db2F94C3B3CDD9EbBe4ab50E3d77d);
 
     /// @notice The relayers that will call the contract
     mapping(address => bool) public relayers;
 
-    /// @notice This is the fee amount in cents. 100 = $1 fee
-    uint public fee;
+    /// @notice This is the amount of WLD in wei for the grant. We don't want to read from the IGrant contract every time
+    uint256 public grantAmount;
 
-    /// @notice This is the amount of WLD in wei for the grant. We don't want to read from the contract every time 
-    uint public grantAmount;
+    /// @notice This is the fee amount in WLD in wei for the grant
+    uint256 public feeAmount;
+
+    /// @notice This is the min WLD amount before swapping and sending to feeAddress
+    uint256 public transferThreshold;
 
     /// @notice This is the address that receives the fee
     address public feeAddress;
 
-    /// @notice Grant address 
-    IRecurringGrantDrop public grantAddress = IRecurringGrantDrop(0x7B46fFbC976db2F94C3B3CDD9EbBe4ab50E3d77d);
+    /// @notice This is the token that WLD will be swapped into
+    address public feeToken;
 
-    /// @notice Thrown when the caller is not the owner
+    /// @notice This is the WLD/feeToken pool on Uniswapv3
+    uint24 public poolFee;
+
+    /// @notice Thrown when the caller is not an allowed caller
     error NotRelayer(address account);
 
-    /// @notice Thrown when the caller is not the owner
-    error NotOwner(address account);
+    /// @notice Emitted when a grant is successfully claimed
+    /// @param receiver The address that received the tokens
+    event GrantClaimed(address receiver);
 
-    constructor(uint _fee, address _feeAddress) Ownable(msg.sender) {
-        fee = _fee;
-        feeAddress = _feeAddress;
+    /**
+     * @dev Throws if called by any account other than a relayer.
+     */
+    modifier onlyRelayer() {
+        if(!relayers[msg.sender]) {
+            revert NotRelayer(msg.sender);
+        }    
+        _;
     }
 
-    function setFee(uint _fee) external onlyOwner {
-        fee = _fee;
+    constructor(
+        uint256 _feeAmount,
+        address _feeAddress,
+        uint256 _transferThreshold,
+        address _feeToken,
+        uint24 _poolFee
+    ) Ownable(msg.sender) {
+        feeAmount = _feeAmount;
+        feeAddress = _feeAddress;
+        transferThreshold = _transferThreshold;
+        feeToken = _feeToken;
+        poolFee = _poolFee;
+    }
+
+    function setFee(uint256 _feeAmount) external onlyOwner {
+        feeAmount = _feeAmount;
     }
 
     function setFeeAddress(address _feeAddress) external onlyOwner {
         feeAddress = _feeAddress;
+    }
+
+    function setTransferThreshold(uint256 _transferThreshold) external onlyOwner {
+        transferThreshold = _transferThreshold;
+    }
+
+    function setFeeToken(address _feeToken) external onlyOwner {
+        feeToken = _feeToken;
+    }
+
+    function setPoolFee(uint24 _poolFee) external onlyOwner {
+        poolFee = _poolFee;
     }
 
     /// @notice Claim the airdrop on behalf of the user, take a fee, and send the rest to the user.
@@ -65,38 +105,37 @@ contract GrantMiddleware is Ownable2Step {
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
     /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
-    function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        external
-    {
+    function claim(
+        uint256 grantId,
+        address receiver,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof
+    ) external onlyRelayer {
         // Send the grant to this contract first
         grantAddress.claim(grantId, address(this), root, nullifierHash, proof);
+        uint256 wldUserAmount = grantAmount - feeAmount;
+        WLD.transfer(receiver, wldUserAmount);
+        emit GrantClaimed(receiver);
 
-    
-        int256 latestRate = ORACLE.latestAnswer();
-        require(latestRate > 0, "Invalid rate from oracle");
+        uint256 feeBalance = WLD.balanceOf(address(this));
 
-        // TODO: Write test for unit conversion
-        uint256 tokenAmount = fee * (10 ** (WLD.decimals() + ORACLE.decimals() - 8)) / uint256(latestRate);
+        if (feeBalance > transferThreshold) {
+            ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+                tokenIn: address(WLD),
+                tokenOut: feeToken,
+                fee: poolFee,
+                recipient: feeAddress,
+                deadline: block.timestamp,
+                amountIn: feeBalance,
+                // TODO: Should we set a min here or just take what the pool gives us
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
 
-        // Swap
-
-        // Calculate the grantAmount
-        // uint grantAmount = grantAddress.grants(grantId).amount;
-
-        // checkClaim(grantId, receiver, root, nullifierHash, proof);
-
-        // nullifierHashes[nullifierHash] = true;
-
-        // SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
-
-        // emit GrantClaimed(grantId, receiver);
+            try UNISWAP_ROUTER.exactInputSingle(params) {}
+            // Don't revert the user's grant claim if swap fails
+            catch {}
+        }
     }
-
-    // /// @notice sets the relayer that can call the transfer() method
-    // /// @param _relayer the new relayer address
-    // /// @custom:reverts NotOwner if the caller is not the owner (the Safe proxy - HOLDER)
-    // function setRelayer(address _relayer) external {
-    //     if (msg.sender != address(HOLDER)) revert NotOwner(msg.sender);
-    //     relayer = _relayer;
-    // }
 }
