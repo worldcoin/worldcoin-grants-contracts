@@ -22,36 +22,35 @@ contract MonthlyGrantTest is PRBTest {
     function testInitialLaunch2Weeks() public {
         vm.warp(launchDay);
         assertEq(launchGrant.getCurrentId(), 13);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 25*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 25 * 10 ** 18);
         vm.warp(launchDay + 2 weeks - 1);
         assertEq(launchGrant.getCurrentId(), 13);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 25*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 25 * 10 ** 18);
     }
 
     /// @notice Tests the single weeks after launch.
     function testConsecutiveSpecialWeeks() public {
-        uint startWeekly = 1691377200; // Monday, 7 August 2023 03:00:00
+        uint256 startWeekly = 1691377200; // Monday, 7 August 2023 03:00:00
         assertEq(startWeekly, launchDay + 2 weeks);
         vm.warp(startWeekly);
         assertEq(launchGrant.getCurrentId(), 14);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 10*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 10 * 10 ** 18);
     }
 
     /// @notice Tests switch to biweekly.
     function testBiWeeklySwitch() public {
-        uint startBiweekly = 1691982000; // Monday, 14 August 2023 03:00:00
+        uint256 startBiweekly = 1691982000; // Monday, 14 August 2023 03:00:00
         assertEq(startBiweekly, launchDay + 3 weeks);
         vm.warp(startBiweekly);
         assertEq(launchGrant.getCurrentId(), 15);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3 * 10 ** 18);
 
         vm.warp(startBiweekly + 2 weeks);
         assertEq(launchGrant.getCurrentId(), 16);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3 * 10 ** 18);
 
         vm.warp(startBiweekly + 4 weeks);
         assertEq(launchGrant.getCurrentId(), 17);
-        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3*10**18);
+        assertEq(launchGrant.getAmount(launchGrant.getCurrentId()), 3 * 10 ** 18);
     }
-
 }

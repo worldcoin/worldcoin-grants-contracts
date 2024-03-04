@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { IGrant } from './IGrant.sol';
+import {IGrant} from "./IGrant.sol";
 
 contract WLDGrant is IGrant {
-    uint256 internal immutable launchDayTimestampInSeconds  = 1690167600; // Monday, 24 July 2023 03:00:00
+    uint256 internal immutable launchDayTimestampInSeconds = 1690167600; // Monday, 24 July 2023 03:00:00
 
     function calculateId(uint256 timestamp) external pure returns (uint256) {
         if (timestamp < launchDayTimestampInSeconds) revert InvalidGrant();
 
-        uint weeksSinceLaunch = (timestamp - launchDayTimestampInSeconds) / 1 weeks;
+        uint256 weeksSinceLaunch = (timestamp - launchDayTimestampInSeconds) / 1 weeks;
         return 15 + (weeksSinceLaunch - 3) / 2;
     }
 
@@ -18,10 +18,10 @@ contract WLDGrant is IGrant {
     }
 
     function getAmount(uint256) external pure override returns (uint256) {
-        return 3 * 10**18;
+        return 3 * 10 ** 18;
     }
 
-    function checkValidity(uint256 grantId) external view override{
+    function checkValidity(uint256 grantId) external view override {
         if (this.getCurrentId() != grantId) revert InvalidGrant();
 
         if (grantId < 21) revert InvalidGrant();

@@ -45,11 +45,14 @@ contract RecurringGrantDropTest is PRBTest {
         proof = [0, 0, 0, 0, 0, 0, 0, 0];
 
         vm.prank(manager);
-        airdrop = new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, grant);
+        airdrop =
+            new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, grant);
         vm.prank(manager);
         airdrop.addAllowedReservationSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        reservationNullifierHash = uint256(0x04fcdedce0510a2d6fedf97a40c69822ab24b82e7682df8c0d2c2e8fefe6ebcd);
-        signature = hex"a7e4f7718dc83001950f51f478bd2c2029e464af4f37439f44555829bedeb3d9721cdb007b05ae399b028abae39171c475462c6c50a8e10c3994ac028be7be9e1b";
+        reservationNullifierHash =
+            uint256(0x04fcdedce0510a2d6fedf97a40c69822ab24b82e7682df8c0d2c2e8fefe6ebcd);
+        signature =
+            hex"a7e4f7718dc83001950f51f478bd2c2029e464af4f37439f44555829bedeb3d9721cdb007b05ae399b028abae39171c475462c6c50a8e10c3994ac028be7be9e1b";
 
         ///////////////////////////////////////////////////////////////////
         ///                            LABELS                           ///
@@ -99,7 +102,7 @@ contract RecurringGrantDropTest is PRBTest {
 
         vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
         vm.prank(caller);
-        
+
         airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
 
         assertEq(token.balanceOf(user), grant.getAmount(0));
@@ -116,7 +119,9 @@ contract RecurringGrantDropTest is PRBTest {
 
         assertEq(token.balanceOf(user), 0);
 
-        airdrop.claimReserved(claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature);
+        airdrop.claimReserved(
+            claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature
+        );
 
         assertEq(token.balanceOf(user), grant.getAmount(21));
     }
@@ -137,7 +142,9 @@ contract RecurringGrantDropTest is PRBTest {
         vm.warp(claimTime + 2 weeks);
 
         vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
-        airdrop.claimReserved(claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature);
+        airdrop.claimReserved(
+            claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature
+        );
     }
 
     /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.

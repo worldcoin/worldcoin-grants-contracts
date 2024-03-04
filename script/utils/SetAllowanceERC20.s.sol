@@ -23,7 +23,6 @@ contract SetAllowanceERC20 is Script {
 
     ERC20 token = ERC20(erc20Address);
 
-
     function run() external {
         vm.startBroadcast(privateKey);
 
@@ -31,5 +30,4 @@ contract SetAllowanceERC20 is Script {
 
         vm.stopBroadcast();
     }
-
 }
