@@ -71,6 +71,9 @@ contract GrantMiddleware is Ownable2Step {
         transferThreshold = _transferThreshold;
         feeToken = _feeToken;
         poolFee = _poolFee;
+
+        // Set max approval once
+        WLD.approve(address(UNISWAP_ROUTER), type(uint256).max);
     }
 
     function setFee(uint256 _feeAmount) external onlyOwner {
