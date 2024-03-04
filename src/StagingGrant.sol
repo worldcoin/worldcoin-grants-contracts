@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { IGrant } from './IGrant.sol';
+import {IGrant} from "./IGrant.sol";
 
 /////////////////////////////////////////
 /// ONLY USED FOR STAGING.
@@ -30,7 +30,7 @@ contract StagingGrant is IGrant {
         return amount;
     }
 
-    function checkValidity(uint256 grantId) external view override{
+    function checkValidity(uint256 grantId) external view override {
         if (this.getCurrentId() != grantId) revert InvalidGrant();
     }
 

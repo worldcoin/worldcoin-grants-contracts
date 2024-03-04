@@ -7,7 +7,6 @@ import {LaunchGrantLegacy} from "src/LaunchGrantLegacy.sol";
 /// @title Deployment script for LaunchGrant
 /// @author Worldcoin
 contract DeployLaunchGrant is Script {
-
     LaunchGrantLegacy grant;
 
     ///////////////////////////////////////////////////////////////////

@@ -17,7 +17,6 @@ import {IGrant} from "src/IGrant.sol";
 /// @dev You need to have the necessary values in scripts/.deploy-config.json in order for it to work.
 /// Can be run by executing `make deploy-airdrop` (assumes a deployment of world-id-contracts or a mock)
 contract DeployRecurringGrantDrop is Script {
-
     RecurringGrantDrop public airdrop;
     IGrant grant;
 
@@ -37,11 +36,12 @@ contract DeployRecurringGrantDrop is Script {
     ///                          VARIABLES                          ///
     ///////////////////////////////////////////////////////////////////
 
-    address public worldIDRouterAddress = abi.decode(vm.parseJson(json, ".worldIDRouterAddress"), (address));
+    address public worldIDRouterAddress =
+        abi.decode(vm.parseJson(json, ".worldIDRouterAddress"), (address));
     IWorldIDGroups public worldIdRouter = IWorldIDGroups(worldIDRouterAddress);
 
     uint256 public groupId = abi.decode(vm.parseJson(json, ".groupId"), (uint256));
-    address public erc20Address = abi.decode(vm.parseJson(json, ".erc20Address"), (address)); 
+    address public erc20Address = abi.decode(vm.parseJson(json, ".erc20Address"), (address));
     address public holder = abi.decode(vm.parseJson(json, ".holderAddress"), (address));
     bool public staging = abi.decode(vm.parseJson(json, ".staging"), (bool));
     uint256 public startMonth = abi.decode(vm.parseJson(json, ".startMonth"), (uint256));
@@ -61,7 +61,8 @@ contract DeployRecurringGrantDrop is Script {
 
         if (!staging) {
             grantLegacy = new LaunchGrantLegacy();
-            airdropLegacy = new RecurringGrantDropLegacy(worldIdRouter, groupId, token, holder, grantLegacy);
+            airdropLegacy =
+                new RecurringGrantDropLegacy(worldIdRouter, groupId, token, holder, grantLegacy);
         }
 
         vm.stopBroadcast();

@@ -5,13 +5,13 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {IGrant} from './IGrant.sol';
+import {IGrant} from "./IGrant.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
 /// @title RecurringGrantDrop
 /// @author Worldcoin
-contract RecurringGrantDrop is Ownable2Step{
+contract RecurringGrantDrop is Ownable2Step {
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,13 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @param _token The ERC20 token that will be airdropped
     /// @param _holder The address holding the tokens that will be airdropped
     /// @param _grant The grant that contains the amounts and validity
-    event RecurringGrantDropInitialized(IWorldIDGroups _worldIdRouter, uint256 _groupId, ERC20 _token, address _holder, IGrant _grant);
+    event RecurringGrantDropInitialized(
+        IWorldIDGroups _worldIdRouter,
+        uint256 _groupId,
+        ERC20 _token,
+        address _holder,
+        IGrant _grant
+    );
 
     /// @notice Emitted when a grant is successfully claimed
     /// @param receiver The address that received the tokens
@@ -149,9 +155,13 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
     /// @dev hashToField function docs are in lib/world-id-contracts/src/libraries/ByteHasher.sol
-    function claim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        external
-    {
+    function claim(
+        uint256 grantId,
+        address receiver,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof
+    ) external {
         checkClaim(grantId, receiver, root, nullifierHash, proof);
 
         nullifierHashes[nullifierHash] = true;
@@ -167,9 +177,13 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    function checkClaim(uint256 grantId, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof)
-        public
-    {
+    function checkClaim(
+        uint256 grantId,
+        address receiver,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof
+    ) public {
         if (receiver == address(0)) revert InvalidReceiver();
 
         if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
@@ -193,9 +207,14 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
     /// @param signature The signature of the reservation
-    function claimReserved(uint256 timestamp, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof, bytes calldata signature)
-        external
-    {
+    function claimReserved(
+        uint256 timestamp,
+        address receiver,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof,
+        bytes calldata signature
+    ) external {
         uint256 grantId = grant.calculateId(timestamp);
         checkClaimReserved(timestamp, receiver, root, nullifierHash, proof, signature);
 
@@ -213,9 +232,14 @@ contract RecurringGrantDrop is Ownable2Step{
     /// @param nullifierHash The nullifier for this proof, preventing double signaling
     /// @param proof The zero knowledge proof, array of 8 uint256 elements, demonstrating that the claimer has a verified World ID
     /// @param signature The off-chain signature of the reservation.
-    function checkClaimReserved(uint256 timestamp, address receiver, uint256 root, uint256 nullifierHash, uint256[8] calldata proof, bytes calldata signature)
-        public
-    {
+    function checkClaimReserved(
+        uint256 timestamp,
+        address receiver,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof,
+        bytes calldata signature
+    ) public {
         uint256 grantId = grant.calculateId(timestamp);
 
         if (receiver == address(0)) revert InvalidReceiver();
@@ -247,7 +271,7 @@ contract RecurringGrantDrop is Ownable2Step{
     function addAllowedReservationSigner(address _signer) external onlyOwner {
         if (_signer == address(0)) revert InvalidReservationSigner();
         allowedSigners[_signer] = true;
-        
+
         emit AllowedReservationSignerAdded(_signer);
     }
 
@@ -282,7 +306,7 @@ contract RecurringGrantDrop is Ownable2Step{
     function setToken(ERC20 _token) external onlyOwner {
         if (address(_token) == address(0)) revert InvalidConfiguration();
         token = _token;
-        
+
         emit TokenUpdated(_token);
     }
 
@@ -291,7 +315,7 @@ contract RecurringGrantDrop is Ownable2Step{
     function setHolder(address _holder) external onlyOwner {
         if (address(_holder) == address(0)) revert InvalidConfiguration();
         holder = _holder;
-        
+
         emit HolderUpdated(holder);
     }
 
