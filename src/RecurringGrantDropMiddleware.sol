@@ -7,11 +7,6 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IRecurringGrantDrop} from "./IRecurringGrantDrop.sol";
 import {ISwapRouter} from "v3-periphery/interfaces/ISwapRouter.sol";
 
-interface IChainlinkAggregator {
-    function latestAnswer() external view returns (int256);
-    function decimals() external view returns (uint8);
-}
-
 /// @title GrantMiddleware
 /// @author Worldcoin
 /// @notice contract that takes fees on grant claims to pay for gas costs
@@ -58,9 +53,9 @@ contract GrantMiddleware is Ownable2Step {
      * @dev Throws if called by any account other than a relayer.
      */
     modifier onlyRelayer() {
-        if(!relayers[msg.sender]) {
+        if (!relayers[msg.sender]) {
             revert NotRelayer(msg.sender);
-        }    
+        }
         _;
     }
 
