@@ -10,7 +10,10 @@ contract WLDGrant is IGrant {
         if (timestamp < launchDayTimestampInSeconds) revert InvalidGrant();
 
         uint256 weeksSinceLaunch = (timestamp - launchDayTimestampInSeconds) / 1 weeks;
-        return 15 + (weeksSinceLaunch - 3) / 2;
+        uint256 grantId = 15 + (weeksSinceLaunch - 3) / 2;
+        // Grant 29 is a four-week grant.
+        if (grantId <= 29) return grantId;
+        return grantId - 1;
     }
 
     function getCurrentId() external view override returns (uint256) {
