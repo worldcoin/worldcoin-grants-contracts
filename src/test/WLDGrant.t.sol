@@ -31,9 +31,10 @@ contract WLDGrantTest is PRBTest {
         assertEq(grant.getAmount(grant.getCurrentId()), 3 * 10 ** 18);
 
         // Afterwards it switches back to biweekly.
+        // Grant 30 is a 6 WLD grant.
         vm.warp(startTimestamp + 4 weeks);
         assertEq(grant.getCurrentId(), 30);
-        assertEq(grant.getAmount(grant.getCurrentId()), 3 * 10 ** 18);
+        assertEq(grant.getAmount(grant.getCurrentId()), 6 * 10 ** 18);
 
         vm.warp(startTimestamp + 6 weeks);
         assertEq(grant.getCurrentId(), 31);
