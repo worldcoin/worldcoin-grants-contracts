@@ -20,7 +20,9 @@ contract WLDGrant is IGrant {
         return this.calculateId(block.timestamp);
     }
 
-    function getAmount(uint256) external pure override returns (uint256) {
+    function getAmount(uint256 grantId) external pure override returns (uint256) {
+        // Grant 30 is a 6 WLD grant.
+        if (grantId == 30) return 6 * 10 ** 18;
         return 3 * 10 ** 18;
     }
 
