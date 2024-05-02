@@ -66,8 +66,8 @@ contract GrantRegistrar is Ownable2Step {
 
   /// @notice Emitted when a user registers their wallet to receive grants
   /// @param receiver The address that will receive the grants
-  /// @param expiryGrandId The last grant this address will be able to claim before re-registering
-  event WalletRegistered(address receiver, uint256 expiryGrandId);
+  /// @param expiryGrantId The last grant this address will be able to claim before re-registering
+  event WalletRegistered(address receiver, uint256 expiryGrantId);
 
   /// @notice Emitted when the worldIdRouter is changed
   /// @param worldIdRouter The new worldIdRouter instance
@@ -100,6 +100,8 @@ contract GrantRegistrar is Ownable2Step {
     uint256 _maxGrantId,
     uint256 _currentGrantId
   ) Ownable(msg.sender) {
+    if (_maxGrantId == 0) revert InvalidConfiguration();
+    if (_maxGrantId <= _currentGrantId) revert InvalidConfiguration();
     if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
 
     groupId = _groupId;
@@ -133,7 +135,7 @@ contract GrantRegistrar is Ownable2Step {
     uint256 nullifierHash,
     uint256[8] calldata proof
   ) external payable {
-    if (nullifierHashes[nullifierHash] <= currentGrantId) revert InvalidNullifier();
+    if (nullifierHashes[nullifierHash] <= maxGrantId) revert InvalidNullifier();
 
     worldIdRouter.verifyProof(
       root,
