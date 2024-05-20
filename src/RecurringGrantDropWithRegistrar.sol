@@ -5,13 +5,13 @@ import { IGrant } from './IGrant.sol';
 import { GrantRegistrar } from './GrantRegistrar.sol';
 import { Ownable } from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import { ERC20 } from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import { ECDSA } from 'openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol';
+import { Pausable } from 'openzeppelin-contracts/contracts/security/Pausable.sol';
 import { Ownable2Step } from 'openzeppelin-contracts/contracts/access/Ownable2Step.sol';
 import { SafeERC20 } from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
 /// @title RecurringGrantDrop
 /// @author Worldcoin
-contract RecurringGrantDrop is Ownable2Step {
+contract RecurringGrantDropWithRegistrar is Ownable2Step, Pausable {
   ///////////////////////////////////////////////////////////////////////////////
   ///                              CONFIG STORAGE                            ///
   //////////////////////////////////////////////////////////////////////////////
@@ -122,7 +122,7 @@ contract RecurringGrantDrop is Ownable2Step {
   /// @notice Claim the airdrop
   /// @param grantId The grant ID to claim
   /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-  function claim(uint256 grantId, address receiver) external {
+  function claim(uint256 grantId, address receiver) external payable whenNotPaused {
     checkClaim(grantId, receiver);
 
     hasClaimedGrant[grantId][receiver] = true;
@@ -183,6 +183,14 @@ contract RecurringGrantDrop is Ownable2Step {
 
     grant = _grant;
     emit GrantUpdated(_grant);
+  }
+
+  function pause() external onlyOwner {
+    _pause();
+  }
+
+  function unpause() external onlyOwner {
+    _unpause();
   }
 
   /// @notice Prevents the owner from renouncing ownership
