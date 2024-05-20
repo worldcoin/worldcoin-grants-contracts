@@ -21,8 +21,11 @@ contract GrantRegistrar is Ownable2Step {
   /// @dev The World ID nullifier hash that will be used to verify proofs.
   uint256 immutable externalNullifierHash;
 
-  /// @dev The maximum grant ID that can be claimed without re-verifying.
-  uint256 public maxGrantId;
+  /// @dev The amount of grants that can be claimed without re-verifying.
+  uint256 public nGrantsValidity;
+
+  /// @dev The number of the current grant at the time of deployment.
+  uint256 immutable grantOffset;
 
   /// @dev The current grant ID.
   uint256 public currentGrantId;
@@ -54,13 +57,13 @@ contract GrantRegistrar is Ownable2Step {
   /// @param worldIdRouter The WorldID router that will manage groups and verify proofs
   /// @param groupId The group ID of the World ID
   /// @param externalNullifierHash The nullifier hash that will be used to verify proofs
-  /// @param maxGrantId The maximum grant ID that can be claimed without re-verifying
+  /// @param nGrantsValidity The number of grants that can be claimed without re-verifying
   /// @param currentGrantId The current grant ID
   event GrantRegistrarInitialized(
     IWorldIDGroups worldIdRouter,
     uint256 groupId,
     uint256 externalNullifierHash,
-    uint256 maxGrantId,
+    uint256 nGrantsValidity,
     uint256 currentGrantId
   );
 
@@ -81,9 +84,9 @@ contract GrantRegistrar is Ownable2Step {
   /// @param currentGrantId The new grantId
   event CurrentGrantIdUpdated(uint256 currentGrantId);
 
-  /// @notice Emitted when the maxGrantId is changed
-  /// @param maxGrantId The new maxGrantId
-  event MaxGrantIdUpdated(uint256 maxGrantId);
+  /// @notice Emitted when the amount of grants that can be claimed without re-verifying is changed
+  /// @param nGrantsValidity The new nGrantsValidity
+  event GrantValidityUpdated(uint256 nGrantsValidity);
 
   ///////////////////////////////////////////////////////////////////////////////
   ///                               CONSTRUCTOR                              ///
@@ -93,28 +96,30 @@ contract GrantRegistrar is Ownable2Step {
   /// @param _worldIdRouter The WorldID router that will manage groups and verify proofs
   /// @param _groupId The group ID of the World ID
   /// @param _externalNullifierHash The nullifier hash that will be used to verify proofs
+  /// @param _nGrantsValidity The number of grants that can be claimed without re-verifying
+  /// @param _currentGrantId The current grant ID
   constructor(
     IWorldIDGroups _worldIdRouter,
     uint256 _groupId,
     uint256 _externalNullifierHash,
-    uint256 _maxGrantId,
+    uint256 _nGrantsValidity,
     uint256 _currentGrantId
   ) Ownable(msg.sender) {
-    if (_maxGrantId == 0) revert InvalidConfiguration();
-    if (_maxGrantId <= _currentGrantId) revert InvalidConfiguration();
+    if (_nGrantsValidity == 0) revert InvalidConfiguration();
     if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
 
     groupId = _groupId;
-    maxGrantId = _maxGrantId;
+    grantOffset = _currentGrantId;
     worldIdRouter = _worldIdRouter;
     currentGrantId = _currentGrantId;
+    nGrantsValidity = _nGrantsValidity;
     externalNullifierHash = _externalNullifierHash;
 
     emit GrantRegistrarInitialized(
       worldIdRouter,
       groupId,
       externalNullifierHash,
-      maxGrantId,
+      nGrantsValidity,
       currentGrantId
     );
   }
@@ -135,6 +140,10 @@ contract GrantRegistrar is Ownable2Step {
     uint256 nullifierHash,
     uint256[8] calldata proof
   ) external payable {
+    uint256 maxGrantId = (((currentGrantId - grantOffset) / nGrantsValidity) + 1) *
+      nGrantsValidity -
+      1;
+
     if (nullifierHashes[nullifierHash] <= maxGrantId) revert InvalidNullifier();
 
     worldIdRouter.verifyProof(
@@ -188,13 +197,13 @@ contract GrantRegistrar is Ownable2Step {
     emit CurrentGrantIdUpdated(currentGrantId);
   }
 
-  /// @notice Update the max grant ID
-  /// @param _maxGrantId The new max grant ID
-  function setMaxGrantId(uint256 _maxGrantId) external onlyOwner {
-    if (_maxGrantId <= currentGrantId) revert InvalidConfiguration();
+  /// @notice Update the amount of grants that can be claimed without re-verifying
+  /// @param _nGrantsValidity The new nGrantsValidity
+  function setGrantValidity(uint256 _nGrantsValidity) external onlyOwner {
+    if (_nGrantsValidity < nGrantsValidity) revert InvalidConfiguration(); // we can never decrease the nGrantsValidity, as this could allow users to double-claim
 
-    maxGrantId = _maxGrantId;
-    emit MaxGrantIdUpdated(maxGrantId);
+    nGrantsValidity = _nGrantsValidity;
+    emit GrantValidityUpdated(nGrantsValidity);
   }
 
   /// @notice Prevents the owner from renouncing ownership
