@@ -30,7 +30,7 @@ contract RecurringGrantDropWithRegistrar is Ownable2Step, Pausable {
   IGrant public grant;
 
   /// @notice Whether a particular grantId has been claimed by an address
-  mapping(uint256 => mapping(address => bool)) public hasClaimedGrant;
+  mapping(address => uint256) public lastClaimedGrant;
 
   ///////////////////////////////////////////////////////////////////////////////
   ///                                  ERRORS                                ///
@@ -125,7 +125,7 @@ contract RecurringGrantDropWithRegistrar is Ownable2Step, Pausable {
   function claim(uint256 grantId, address receiver) external payable whenNotPaused {
     checkClaim(grantId, receiver);
 
-    hasClaimedGrant[grantId][receiver] = true;
+    lastClaimedGrant[receiver] = grantId;
 
     SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
 
@@ -138,7 +138,7 @@ contract RecurringGrantDropWithRegistrar is Ownable2Step, Pausable {
   function checkClaim(uint256 grantId, address receiver) public view {
     if (
       receiver == address(0) ||
-      hasClaimedGrant[grantId][receiver] ||
+      lastClaimedGrant[receiver] < grantId ||
       !grantRegistrar.canClaimGrant(receiver, grantId)
     ) revert InvalidReceiver();
 
