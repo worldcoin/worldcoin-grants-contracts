@@ -140,11 +140,12 @@ contract GrantRegistrar is Ownable2Step {
     uint256 nullifierHash,
     uint256[8] calldata proof
   ) external payable {
+    uint256 lastClaimedGrantId = nullifierHashes[nullifierHash];
     uint256 maxGrantId = (((currentGrantId - grantOffset) / nGrantsValidity) + 1) *
       nGrantsValidity -
       1;
 
-    if (nullifierHashes[nullifierHash] <= maxGrantId) revert InvalidNullifier();
+    if (lastClaimedGrantId != 0 && lastClaimedGrantId <= maxGrantId) revert InvalidNullifier();
 
     worldIdRouter.verifyProof(
       root,
