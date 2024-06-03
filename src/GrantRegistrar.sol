@@ -24,9 +24,6 @@ contract GrantRegistrar is Ownable2Step {
   /// @dev The amount of grants that can be claimed without re-verifying.
   uint256 public nGrantsValidity;
 
-  /// @dev The number of the current grant at the time of deployment.
-  uint256 immutable grantOffset;
-
   /// @dev The current grant ID.
   uint256 public currentGrantId;
 
@@ -109,7 +106,6 @@ contract GrantRegistrar is Ownable2Step {
     if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
 
     groupId = _groupId;
-    grantOffset = _currentGrantId;
     worldIdRouter = _worldIdRouter;
     currentGrantId = _currentGrantId;
     nGrantsValidity = _nGrantsValidity;
@@ -141,9 +137,7 @@ contract GrantRegistrar is Ownable2Step {
     uint256[8] calldata proof
   ) external payable {
     uint256 lastClaimedGrantId = nullifierHashes[nullifierHash];
-    uint256 maxGrantId = (((currentGrantId - grantOffset) / nGrantsValidity) + 1) *
-      nGrantsValidity -
-      1;
+    uint256 maxGrantId = (((currentGrantId) / nGrantsValidity) + 1) * nGrantsValidity - 1;
 
     if (lastClaimedGrantId != 0 && lastClaimedGrantId <= maxGrantId) revert InvalidNullifier();
 
