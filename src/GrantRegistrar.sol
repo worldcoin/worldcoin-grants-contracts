@@ -137,7 +137,7 @@ contract GrantRegistrar is Ownable2Step {
     uint256[8] calldata proof
   ) external payable {
     uint256 lastClaimedGrantId = nullifierHashes[nullifierHash];
-    uint256 maxGrantId = (((currentGrantId) / nGrantsValidity) + 1) * nGrantsValidity - 1;
+    uint256 maxGrantId = currentGrantId + nGrantsValidity;
 
     if (lastClaimedGrantId != 0 && lastClaimedGrantId <= maxGrantId) revert InvalidNullifier();
 
