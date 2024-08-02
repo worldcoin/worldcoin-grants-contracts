@@ -35,8 +35,8 @@ contract RecurringGrantDrop is Ownable2Step {
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
     mapping(uint256 => bool) public nullifierHashes;
 
-    /// @dev Allowed addresses to sign a reservation
-    mapping(address => bool) internal allowedSigners;
+    /// @dev Allowed addresses to block a nullifierHash
+    mapping(address => bool) internal allowedNullifierHashBlockers;
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
@@ -48,20 +48,20 @@ contract RecurringGrantDrop is Ownable2Step {
     /// @notice Error in case the receiver is zero address.
     error InvalidReceiver();
 
-    /// @notice Error in case the receiver is zero address.
-    error InvalidTimestamp();
-
-    /// @notice Thrown when passed an invalid caller address
-    error InvalidReservationSigner();
-
-    /// @notice Thrown when passed an invalid caller address
-    error UnauthorizedSigner();
-
     /// @notice Thrown when attempting to reuse a nullifier
     error InvalidNullifier();
 
     /// @notice Emmitted in revert if the owner attempts to resign ownership.
     error CannotRenounceOwnership();
+
+    /// @notice Thrown when attempting to block a nullifier hash that has already been blocked
+    error NullifierHashAlreadyBlocked();
+
+    /// @notice Thrown when attempting to add an invalid allowed recipient blocker
+    error InvalidAllowedNullifierHashBlocker();
+
+    /// @notice Thrown when attempting to sign with an unauthorized nullifier hash blocker
+    error UnauthorizedNullifierHashBlocker();
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  EVENTS                                ///
@@ -105,13 +105,14 @@ contract RecurringGrantDrop is Ownable2Step {
     /// @param grant The new grant instance
     event GrantUpdated(IGrant grant);
 
-    /// @notice Emitted when an allowed reservation signer is added
-    /// @param signer The new signer
-    event AllowedReservationSignerAdded(address signer);
+    /// @notice Emitted when an allowed nullifier hash blocker is added
+    event AllowedNullifierHashBlockerAdded(address signer);
 
-    /// @notice Emitted when an allowed reservation signer is removed
-    /// @param signer The new signer
-    event AllowedReservationSignerRemoved(address signer);
+    /// @notice Emitted when an allowed nullifier hash blocker is removed
+    event AllowedNullifierHashBlockerRemoved(address signer);
+
+    /// @notice Emitted when a nullifier hash is blocked
+    event NullifierHashBlocked(uint256 nullifierHash);
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONSTRUCTOR                              ///
@@ -146,7 +147,16 @@ contract RecurringGrantDrop is Ownable2Step {
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CLAIM LOGIC                               ///
-    //////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+
+    /// @notice Block a nullifier hash from being used
+    /// @param nullifierHash The nullifier hash to block
+    function setNullifierHash(uint256 nullifierHash) external {
+        if (!allowedNullifierHashBlockers[msg.sender]) revert UnauthorizedNullifierHashBlocker();
+        if (nullifierHashes[nullifierHash]) revert NullifierHashAlreadyBlocked();
+        nullifierHashes[nullifierHash] = true;
+        emit NullifierHashBlocked(nullifierHash);
+    }
 
     /// @notice Claim the airdrop
     /// @param grantId The grant ID to claim
@@ -200,88 +210,26 @@ contract RecurringGrantDrop is Ownable2Step {
         );
     }
 
-    /// @notice Claim a reserved grant from the past
-    /// @param timestamp The timestamp of the reservation
-    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
-    /// @param nullifierHash The nullifier for this proof, preventing double signaling
-    /// @param proof The zero knowledge proof that demonstrates the claimer has a verified World ID
-    /// @param signature The signature of the reservation
-    function claimReserved(
-        uint256 timestamp,
-        address receiver,
-        uint256 root,
-        uint256 nullifierHash,
-        uint256[8] calldata proof,
-        bytes calldata signature
-    ) external {
-        uint256 grantId = grant.calculateId(timestamp);
-        checkClaimReserved(timestamp, receiver, root, nullifierHash, proof, signature);
-
-        nullifierHashes[nullifierHash] = true;
-
-        SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
-
-        emit GrantClaimed(grantId, receiver);
-    }
-
-    /// @notice Check whether a reservation is valid
-    /// @param timestamp The timestamp of the reservation
-    /// @param receiver The address that will receive the tokens (this is also the signal of the ZKP)
-    /// @param root The root of the Merkle tree (signup-sequencer or world-id-contracts provides this)
-    /// @param nullifierHash The nullifier for this proof, preventing double signaling
-    /// @param proof The zero knowledge proof, array of 8 uint256 elements, demonstrating that the claimer has a verified World ID
-    /// @param signature The off-chain signature of the reservation.
-    function checkClaimReserved(
-        uint256 timestamp,
-        address receiver,
-        uint256 root,
-        uint256 nullifierHash,
-        uint256[8] calldata proof,
-        bytes calldata signature
-    ) public {
-        uint256 grantId = grant.calculateId(timestamp);
-
-        if (receiver == address(0)) revert InvalidReceiver();
-        if (timestamp > block.timestamp) revert InvalidTimestamp();
-
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
-
-        grant.checkReservationValidity(timestamp);
-
-        address signer = ECDSA.recover(keccak256(abi.encode(timestamp, nullifierHash)), signature);
-        if (!allowedSigners[signer]) revert UnauthorizedSigner();
-
-        worldIdRouter.verifyProof(
-            root,
-            groupId,
-            uint256(keccak256(abi.encodePacked(receiver))) >> 8,
-            nullifierHash,
-            grantId,
-            proof
-        );
-    }
-
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONFIG LOGIC                             ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Add a caller to the list of allowed callers
+    /// @notice Add a blocker to the list of allowed nullifier hash blockers
     /// @param _signer The address to add
-    function addAllowedReservationSigner(address _signer) external onlyOwner {
-        if (_signer == address(0)) revert InvalidReservationSigner();
-        allowedSigners[_signer] = true;
+    function addAllowedNullifierHashBlocker(address _signer) external onlyOwner {
+        if (_signer == address(0)) revert InvalidAllowedNullifierHashBlocker();
+        allowedNullifierHashBlockers[_signer] = true;
 
-        emit AllowedReservationSignerAdded(_signer);
+        emit AllowedNullifierHashBlockerAdded(_signer);
     }
 
-    /// @notice Remove a signer to the list of allowed signers
+    /// @notice Remove a blocker from the list of allowed nullifier hash blockers
     /// @param _signer The address to remove
-    function removeAllowedReservationSigner(address _signer) external onlyOwner {
-        if (_signer == address(0)) revert InvalidReservationSigner();
-        allowedSigners[_signer] = false;
+    function removeAllowedNullifierHashBlocker(address _signer) external onlyOwner {
+        if (_signer == address(0)) revert InvalidAllowedNullifierHashBlocker();
+        allowedNullifierHashBlockers[_signer] = false;
 
-        emit AllowedReservationSignerRemoved(_signer);
+        emit AllowedNullifierHashBlockerRemoved(_signer);
     }
 
     /// @notice Update the worldIdRouter

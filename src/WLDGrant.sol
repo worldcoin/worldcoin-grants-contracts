@@ -4,44 +4,147 @@ pragma solidity ^0.8.19;
 import {IGrant} from "./IGrant.sol";
 
 contract WLDGrant is IGrant {
-    uint256 internal immutable launchDayTimestampInSeconds = 1690167600; // Monday, 24 July 2023 03:00:00
+    
+    // @notice Launch day timestamp in seconds.
+    uint256 internal constant launchDayTimestampInSeconds = 1690167600; // Monday, 24 July 2023 03:00:00 GMT
 
-    function calculateId(uint256 timestamp) external pure returns (uint256) {
-        if (timestamp < launchDayTimestampInSeconds) revert InvalidGrant();
+    // @notice Grants 4.0 launch day timestamp in seconds.
+    uint256 internal constant grant4LaunchDayTimestampInSeconds = 1722470400; // Thursday, 01 August 2024 00:00:00 GMT
 
-        uint256 weeksSinceLaunch = (timestamp - launchDayTimestampInSeconds) / 1 weeks;
-        uint256 grantId = 15 + (weeksSinceLaunch - 3) / 2;
-        // Grant 29 is a four-week grant.
-        if (grantId <= 29) return grantId;
-        return grantId - 1;
+    uint256[] public grantAmountsList = [
+        6180000000000000000,
+        6000000000000000000,
+        5820000000000000000,
+        5590000000000000000,
+        5360000000000000000,
+        5150000000000000000,
+        4940000000000000000,
+        4740000000000000000,
+        4550000000000000000,
+        4370000000000000000,
+        4200000000000000000,
+        4030000000000000000,
+        3830000000000000000,
+        3640000000000000000,
+        3450000000000000000,
+        3280000000000000000,
+        3120000000000000000,
+        2960000000000000000,
+        2810000000000000000,
+        2670000000000000000,
+        2540000000000000000,
+        2410000000000000000,
+        2290000000000000000,
+        2180000000000000000,
+        2050000000000000000,
+        1920000000000000000,
+        1810000000000000000,
+        1700000000000000000,
+        1600000000000000000,
+        1500000000000000000,
+        1410000000000000000,
+        1330000000000000000,
+        1250000000000000000,
+        1170000000000000000,
+        1100000000000000000,
+        1040000000000000000,
+        960000000000000000,
+        900000000000000000,
+        830000000000000000,
+        780000000000000000,
+        720000000000000000,
+        670000000000000000,
+        620000000000000000,
+        580000000000000000,
+        540000000000000000,
+        500000000000000000,
+        470000000000000000,
+        430000000000000000,
+        400000000000000000,
+        370000000000000000
+    ];
+
+    mapping(uint256 => uint256) public grantAmounts;
+
+    constructor() {
+        // we use a mapping to store the grant amounts for gas efficiency
+        for (uint256 i = 0; i < grantAmountsList.length; i++) {
+            grantAmounts[i] = grantAmountsList[i];
+        }
     }
 
-    function getCurrentId() external view override returns (uint256) {
-        return this.calculateId(block.timestamp);
+    /////////////////////////////////////////////////////////////////
+    ///                         Functions                         ///
+    /////////////////////////////////////////////////////////////////
+
+    // @notice Returns the amount of tokens for a grant.
+    // @param grantId The grant id to get the amount for.
+    function getAmount(uint256 grantId) external view override returns (uint256) {
+        _checkGrantIdBounds(grantId);
+        return grantAmounts[grantId - 39];
     }
 
-    function getAmount(uint256 grantId) external pure override returns (uint256) {
-        // Grant 30 is a 6 WLD grant.
-        if (grantId == 30) return 6 * 10 ** 18;
-        return 3 * 10 ** 18;
-    }
-
+    // @notice Checks whether a grant is valid.
+    // @param grantId The grant id to check.
     function checkValidity(uint256 grantId) external view override {
-        if (this.getCurrentId() != grantId) revert InvalidGrant();
-
-        if (grantId < 21) revert InvalidGrant();
+        _checkGrantIdBounds(grantId);
+        if (block.timestamp < grant4LaunchDayTimestampInSeconds) revert InvalidGrant();
+        (uint256 grantOne, uint256 grantTwo) = activeGrants();
+        if (grantId != grantOne && grantId != grantTwo) revert InvalidGrant();
     }
 
-    function checkReservationValidity(uint256 timestamp) external view override {
-        uint256 grantId = this.calculateId(timestamp);
+    // @notice Returns the active grants after the grants 4.0 launch.
+    // @notice For August 2024, both return values are 39.
+    // @notice For all other months after that, the first return value is 38 + months since August 2024
+    // @notice and the second is 39 + months since August 2024.
+    function activeGrants() public view returns (uint256 grantOne, uint256 grantTwo) {
+        uint256 monthsSinceAugust2024 = _monthsSinceAugust2024();
+        if (monthsSinceAugust2024 == 0) {
+            return (39, 39);
+        }
+        return (38 + monthsSinceAugust2024, 39 + monthsSinceAugust2024);
+    }
 
-        // No future grants can be claimed.
-        if (grantId >= this.getCurrentId()) revert InvalidGrant();
+    ////////////////////////////////////////////////////////////////
+    ///                   Internal Functions                     ///
+    ////////////////////////////////////////////////////////////////
 
-        // Only grants 20 and above can be reserved.
-        if (grantId < 21) revert InvalidGrant();
+    // @notice Checks whether a grant id is within the bounds supported by the contract.
+    function _checkGrantIdBounds(uint256 grantId) internal pure {
+        if (grantId < 39 || grantId > 88) {
+            revert InvalidGrant();
+        }
+    }
 
-        // Reservations are only valid for 12 months.
-        if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
+    // @notice Calculates the number of months since August 2024.
+    // @return The number of months since August 2024.
+    function _monthsSinceAugust2024() internal view returns (uint256) {
+        (uint256 currentYear, uint256 currentMonth) = _calculateYearAndMonth(block.timestamp);
+
+        if (currentYear == 2024 && currentMonth == 8) {
+            return 0;
+        }
+
+        return  (currentYear - 2024) * 12 + currentMonth - 8;
+    }
+
+
+    /// @notice Returns the current year and month based on timestamp
+    /// @notice Algorithm is taken from https://aa.usno.navy.mil/faq/JD_formula
+    /// @param timestamp The timestamp to calculate the year and month for
+    /// @return year The current year
+    /// @return month The current month
+    function _calculateYearAndMonth(uint256 timestamp) internal pure returns (uint256, uint256) {
+        uint256 d = timestamp / 86400 + 2440588;
+        uint256 L = d + 68569;
+        uint256 N = (4 * L) / 146097;
+        L = L - (146097 * N + 3) / 4;
+        uint256 year = (4000 * (L + 1)) / 1461001;
+        L = L - (1461 * year) / 4 + 31;
+        uint256 month = (80 * L) / 2447;
+        L = month / 11;
+        month = month + 2 - 12 * L;
+        year = 100 * (N - 49) + year + L;
+        return (year, month);
     }
 }

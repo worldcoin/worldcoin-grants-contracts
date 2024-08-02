@@ -32,7 +32,7 @@ async function loadConfiguration(useConfig) {
   if (answer === undefined) {
     answer = true;
   }
-  if (answer) {
+  if (answer !== "n" && answer !== "N") {
     if (!fs.existsSync(CONFIG_FILENAME)) {
       spinner.warn('Configuration load requested but no configuration available: continuing');
       return {};
@@ -67,7 +67,7 @@ async function saveConfiguration(config) {
     }
   })();
 
-  const data = JSON.stringify({ ...oldData, ...config });
+  const data = JSON.stringify({ ...oldData, ...config }, null, "\t");
   fs.writeFileSync(CONFIG_FILENAME, data);
 }
 
@@ -85,7 +85,7 @@ async function getPrivateKey(config) {
     config.privateKey = process.env.PRIVATE_KEY;
   }
   if (!config.privateKey) {
-    config.privateKey = await ask('Enter deployer private key: ');
+    config.privateKey = await ask('Enter deployer private key (0x-prefixed): ');
   }
 }
 
@@ -131,6 +131,33 @@ async function getHolderPrivateKey(config) {
   }
   if (!config.holderPrivateKey) {
     config.holderPrivateKey = parseInt(await ask('Enter your Holder private key: '));
+  }
+}
+
+async function getApprovalAmount(config) {
+  if (!config.approvalAmount) {
+    config.approvalAmount = parseInt(process.env.APPROVAL_AMOUNT);
+  }
+  if (!config.approvalAmount) {
+    config.approvalAmount = parseInt(await ask('Enter the amount you want to approve: '));
+  }
+}
+
+async function getAllowedNullifierHashBlocker(config) {
+  if (!config.allowedNullifierHashBlocker) {
+    config.allowedNullifierHashBlocker = process.env.ALLOWED_NULLIFIER_HASH_BLOCKER;
+  }
+  if (!config.allowedNullifierHashBlocker) {
+    config.allowedNullifierHashBlocker = await ask('Enter the address of the allowed nullifier hash blocker: ');
+  }
+}
+
+async function getRecurringGrantDropAddress(config) {
+  if (!config.recurringGrantDropAddress) {
+    config.recurringGrantDropAddress = process.env.RECURRING_GRANT_DROP_ADDRESS;
+  }
+  if (!config.recurringGrantDropAddress) {
+    config.recurringGrantDropAddress = await ask('Enter the address of the recurring grant drop: ');
   }
 }
 
@@ -206,10 +233,10 @@ async function getAirdropParameters(config) {
   await getWorldIDRouterGroupId(config);
   await getErc20Address(config);
   await getHolderAddress(config);
-  await getStartMonth(config);
-  await getStartYear(config);
-  await getAmount(config);
-  await getStartOffset(config);
+  //await getStartMonth(config);
+  //await getStartYear(config);
+  //await getAmount(config);
+  //await getStartOffset(config);
 
   await saveConfiguration(config);
 }
@@ -217,7 +244,7 @@ async function getAirdropParameters(config) {
 async function deployAirdrop(config) {
   dotenv.config();
 
-  await isStaging(config);
+  //await isStaging(config);
   await getPrivateKey(config);
   await getEthereumRpcUrl(config);
   await getEtherscanApiKey(config);
@@ -240,10 +267,81 @@ async function deployAirdrop(config) {
   }
 }
 
+async function deployAirdropReservations(config) {
+  dotenv.config();
+
+  //await isStaging(config);
+  await getPrivateKey(config);
+  await getEthereumRpcUrl(config);
+  await getEtherscanApiKey(config);
+  await getWorldIDIdentityManagerRouterAddress(config);
+  await saveConfiguration(config);
+  await getAirdropParameters(config);
+  await getRecurringGrantDropAddress(config);
+
+  const spinner = ora(`Deploying RecurringGrantDropReservations contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/RecurringGrantDropReservations.s.sol:DeployRecurringGrantDropReservations --fork-url ${config.ethereumRpcUrl} \
+      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed RecurringGrantDropReservations contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of RecurringGrantDropReservations has failed.');
+  }
+}
+
+async function deployWLDGrantPreGrant4(config) {
+  dotenv.config();
+
+  await getPrivateKey(config);
+
+  const spinner = ora(`Deploying WLDGrantPreGrant4_new contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/WLDGrantPreGrant4_new.s.sol:DeployWLDGrantPreGrant4_new --fork-url ${config.ethereumRpcUrl} \
+      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed WLDGrantPreGrant4_new contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of WLDGrantPreGrant4_new has failed.');
+  }
+}
+
+async function setAllowanceMax(config) {
+  await getErc20Address(config);
+  await getSpenderAddress(config);
+  await getHolderPrivateKey(config);
+
+  await saveConfiguration(config);
+
+  const spinner = ora(`setting allowance...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/utils/SetAllowanceERC20_max.s.sol:SetAllowanceERC20Max --fork-url ${config.ethereumRpcUrl} \
+      --broadcast -vvvv`
+    );
+    console.log(data.toString());
+
+    spinner.succeed(`Allowance set for ${config.holderAddress}!`);
+  } catch (err) {
+    console.error(err);
+    spinner.fail(`Setting allowance for ${config.holderAddress} failed.`);
+  }
+}
+
 async function setAllowance(config) {
   await getErc20Address(config);
   await getSpenderAddress(config);
   await getHolderPrivateKey(config);
+  await getApprovalAmount(config);
 
   await saveConfiguration(config);
 
@@ -263,18 +361,64 @@ async function setAllowance(config) {
   }
 }
 
+async function addAllowedNullifierHashBlocker(config) {
+  await getPrivateKey(config);
+  await getAllowedNullifierHashBlocker(config);
+  await getRecurringGrantDropAddress(config);
+
+  await saveConfiguration(config);
+
+  const spinner = ora(`Adding allowed nullifier hash blocker...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/utils/AddAllowedNullifierHashBlocker.s.sol:AddAllowedNullifierHashBlocker --fork-url ${config.ethereumRpcUrl} \
+      --broadcast -vvvv`
+    );
+    console.log(data.toString());
+
+    spinner.succeed(`Allowed nullifier hash blocker set for ${config.recurringGrantDropAddress}!`);
+  } catch (err) {
+    console.error(err);
+    spinner.fail(`Adding allowed nullifier hash blocker for ${config.recurringGrantDropAddress} failed.`);
+  }
+}
+
 async function main() {
   const program = new Command();
 
   program
     .name('deploy-airdrop')
     .command('deploy-airdrop')
-    .description('Interactively deploys the WorldIDAirdrop contracts on Ethereum mainnet.')
+    .description('Interactively deploys the RecurringGrantDrop contracts.')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      delete config.staging; // allows get asked for this one
+      await deployAirdropReservations(config);
+      await saveConfiguration(config);
+    });
+
+    program
+    .name('deploy-airdrop-reservations')
+    .command('deploy-airdrop-reservations')
+    .description('Interactively deploys the RecurringGrantDropReservations contracts.')
     .action(async () => {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
       delete config.staging; // allows get asked for this one
       await deployAirdrop(config);
+      await saveConfiguration(config);
+    });
+
+  program
+    .name('set-allowance-max')
+    .command('set-allowance-max')
+    .description('Sets ERC20 token allowance of the holder address to the max amount.')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await setAllowanceMax(config);
       await saveConfiguration(config);
     });
 
@@ -286,6 +430,28 @@ async function main() {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
       await setAllowance(config);
+      await saveConfiguration(config);
+    });
+
+  program
+    .name('add-allowed-nullifier-hash-blocker')
+    .command('add-allowed-nullifier-hash-blocker')
+    .description('Adds an allowed nullifier hash blocker to the RecurringGrantDrop contract.')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await addAllowedNullifierHashBlocker(config);
+      await saveConfiguration(config);
+    });
+
+  program
+    .name('deploy-wld-grant-pre-grant-4-new')
+    .command('deploy-wld-grant-pre-grant-4-new')
+    .description('Deploys the WLDGrantPreGrant4_new contract')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await deployWLDGrantPreGrant4(config);
       await saveConfiguration(config);
     });
 

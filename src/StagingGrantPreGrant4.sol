@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {IGrant} from "./IGrant.sol";
+import {IGrant} from "./IGrantPreGrant4.sol";
 
 /////////////////////////////////////////
 /// ONLY USED FOR STAGING.

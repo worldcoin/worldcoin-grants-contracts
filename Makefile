@@ -22,7 +22,15 @@ snapshot:; FOUNDRY_PROFILE=bench forge snapshot
 # Deploy contracts 
 deploy-airdrop:; node --no-warnings script/deploy.js deploy-airdrop
 
+deploy-airdrop-reservations:; node --no-warnings script/deploy.js deploy-airdrop-reservations
+
+set-allowance-max:; node --no-warnings script/deploy.js set-allowance-max
+
 set-allowance:; node --no-warnings script/deploy.js set-allowance
+
+add-allowed-nullifier-hash-blocker:; node --no-warnings script/deploy.js add-allowed-nullifier-hash-blocker
+
+deploy-wld-grant-pre-grant-4-new:; node --no-warnings script/deploy.js deploy-wld-grant-pre-grant-4-new
 
 # ===== Utility Rules =================================================================================================
 
