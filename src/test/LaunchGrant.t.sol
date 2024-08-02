@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {PRBTest} from "@prb/test/PRBTest.sol";
 import {WorldIDIdentityManagerRouterMock} from "src/test/mock/WorldIDIdentityManagerRouterMock.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
-import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
+import {RecurringGrantDrop} from "../RecurringGrantDropLegacy.sol";
 import {LaunchGrantLegacy} from "../LaunchGrantLegacy.sol";
 
 /// @title LaunchGrantTest

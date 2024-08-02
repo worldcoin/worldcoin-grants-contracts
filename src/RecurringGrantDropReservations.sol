@@ -6,13 +6,13 @@ import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IGrant} from "./IGrantPreGrant4.sol";
-import {RecurringGrantDrop} from "./RecurringGrantDrop.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
+import {RecurringGrantDrop} from "./RecurringGrantDropPreGrant4.sol";
 
-/// @title RecurringGrantDropLegacy
+/// @title RecurringGrantDropReservations
 /// @author Worldcoin
-contract RecurringGrantDropLegacy is Ownable2Step {
+contract RecurringGrantDropReservations is Ownable2Step {
     ///////////////////////////////////////////////////////////////////////////////
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
@@ -33,15 +33,13 @@ contract RecurringGrantDropLegacy is Ownable2Step {
     /// @notice The grant instance used
     IGrant public grant;
 
+    RecurringGrantDrop public recurringGrantDrop;
+
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
     mapping(uint256 => bool) public nullifierHashes;
 
     /// @dev Allowed addresses to sign a reservation
     mapping(address => bool) internal allowedSigners;
-
-    /// @dev The previous contract that was used for this airdrop
-    RecurringGrantDrop internal immutable PREVIOUS_CONTRACT =
-        RecurringGrantDrop(0xe773335550b63eed23a6e60DCC4709106A1F653c);
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
@@ -83,7 +81,8 @@ contract RecurringGrantDropLegacy is Ownable2Step {
         uint256 _groupId,
         ERC20 _token,
         address _holder,
-        IGrant _grant
+        IGrant _grant,
+        RecurringGrantDrop _recurringGrantDrop
     );
 
     /// @notice Emitted when a grant is successfully claimed
@@ -110,6 +109,10 @@ contract RecurringGrantDropLegacy is Ownable2Step {
     /// @param grant The new grant instance
     event GrantUpdated(IGrant grant);
 
+    /// @notice Emitted when the recurring grant drop is changed
+    /// @param recurringGrantDrop The new recurring grant drop instance
+    event RecurringGrantDropUpdated(RecurringGrantDrop recurringGrantDrop);
+
     /// @notice Emitted when an allowed reservation signer is added
     /// @param signer The new signer
     event AllowedReservationSignerAdded(address signer);
@@ -133,20 +136,23 @@ contract RecurringGrantDropLegacy is Ownable2Step {
         uint256 _groupId,
         ERC20 _token,
         address _holder,
-        IGrant _grant
+        IGrant _grant,
+        RecurringGrantDrop _recurringGrantDrop
     ) Ownable(msg.sender) {
         if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
         if (address(_token) == address(0)) revert InvalidConfiguration();
         if (address(_holder) == address(0)) revert InvalidConfiguration();
         if (address(_grant) == address(0)) revert InvalidConfiguration();
+        if (address(_recurringGrantDrop) == address(0)) revert InvalidConfiguration();
 
         worldIdRouter = _worldIdRouter;
         groupId = _groupId;
         token = _token;
         holder = _holder;
         grant = _grant;
+        recurringGrantDrop = _recurringGrantDrop;
 
-        emit RecurringGrantDropInitialized(worldIdRouter, groupId, token, holder, grant);
+        emit RecurringGrantDropInitialized(worldIdRouter, groupId, token, holder, grant, recurringGrantDrop);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -168,8 +174,8 @@ contract RecurringGrantDropLegacy is Ownable2Step {
         uint256[8] calldata proof,
         bytes calldata signature
     ) external {
-        checkClaimReserved(timestamp, receiver, root, nullifierHash, proof, signature);
         uint256 grantId = grant.calculateId(timestamp);
+        checkClaimReserved(timestamp, receiver, root, nullifierHash, proof, signature);
 
         nullifierHashes[nullifierHash] = true;
 
@@ -196,9 +202,10 @@ contract RecurringGrantDropLegacy is Ownable2Step {
         uint256 grantId = grant.calculateId(timestamp);
 
         if (receiver == address(0)) revert InvalidReceiver();
-        if (timestamp >= block.timestamp) revert InvalidTimestamp();
+        if (timestamp > block.timestamp) revert InvalidTimestamp();
 
-        this.checkNullifier(grantId, receiver, root, nullifierHash, proof);
+        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
+        if (recurringGrantDrop.nullifierHashes(nullifierHash)) revert InvalidNullifier();
 
         grant.checkReservationValidity(timestamp);
 
@@ -213,27 +220,6 @@ contract RecurringGrantDropLegacy is Ownable2Step {
             grantId,
             proof
         );
-    }
-
-    /// @notice Check whether a nullifier has been used before in the previous contract.
-    function checkNullifier(
-        uint256 grantId,
-        address receiver,
-        uint256 root,
-        uint256 nullifierHash,
-        uint256[8] calldata proof
-    ) external {
-        if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
-
-        try PREVIOUS_CONTRACT.checkClaim(grantId, receiver, root, nullifierHash, proof) {
-            // This should not happen since only claiming the current grant can succeed, which is already prohibited by the check above.
-        } catch (bytes memory reason) {
-            // Check if nullifier has already been used.
-            if (bytes4(reason) == RecurringGrantDrop.InvalidNullifier.selector) {
-                revert InvalidNullifier();
-            }
-            // Any other error is fine.
-        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -300,6 +286,15 @@ contract RecurringGrantDropLegacy is Ownable2Step {
 
         grant = _grant;
         emit GrantUpdated(_grant);
+    }
+
+    /// @notice Update the recurring grant drop
+    /// @param _recurringGrantDrop The new recurring grant drop
+    function setRecurringGrantDrop(RecurringGrantDrop _recurringGrantDrop) external onlyOwner {
+        if (address(_recurringGrantDrop) == address(0)) revert InvalidConfiguration();
+
+        recurringGrantDrop = _recurringGrantDrop;
+        emit RecurringGrantDropUpdated(_recurringGrantDrop);
     }
 
     /// @notice Prevents the owner from renouncing ownership

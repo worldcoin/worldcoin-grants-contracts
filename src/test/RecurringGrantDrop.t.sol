@@ -7,6 +7,7 @@ import {TestERC20} from "./mock/TestERC20.sol";
 import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
 import {WLDGrant} from "../WLDGrant.sol";
 import {IGrant} from "../IGrant.sol";
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /// @title RecurringGrantDrop Tests
 /// @author Worldcoin
@@ -22,12 +23,13 @@ contract RecurringGrantDropTest is PRBTest {
     address public caller;
     address public holder;
     uint256 public startTime = 1690167600; // Monday, 24 July 2023 03:00:00
-    uint256 public claimTime = 1699239600; // Monday, 23 October 2023 03:00:00
-    uint256 public reservationNullifierHash;
-    bytes public signature;
+    uint256 public preGrant4_claimTime = 1699239600; // Monday, 23 October 2023 03:00:00
+    uint256 public grant4_grant39_claimTime = 1722470400; // Thursday, 01 August 2024 00:00:00
+    uint256 public grant4_grant39_2ndMonth_claimTime = grant4_grant39_claimTime + 35 days;
     TestERC20 internal token;
     WorldIDIdentityManagerRouterMock internal worldIDIdentityManagerRouterMock;
     RecurringGrantDrop internal airdrop;
+    RecurringGrantDrop internal airdropHarness;
     IGrant internal grant;
 
     function setUp() public {
@@ -48,11 +50,6 @@ contract RecurringGrantDropTest is PRBTest {
         airdrop =
             new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, grant);
         vm.prank(manager);
-        airdrop.addAllowedReservationSigner(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        reservationNullifierHash =
-            uint256(0x04fcdedce0510a2d6fedf97a40c69822ab24b82e7682df8c0d2c2e8fefe6ebcd);
-        signature =
-            hex"a7e4f7718dc83001950f51f478bd2c2029e464af4f37439f44555829bedeb3d9721cdb007b05ae399b028abae39171c475462c6c50a8e10c3994ac028be7be9e1b";
 
         ///////////////////////////////////////////////////////////////////
         ///                            LABELS                           ///
@@ -74,82 +71,123 @@ contract RecurringGrantDropTest is PRBTest {
         token.approve(address(airdrop), type(uint256).max);
     }
 
-    /// @notice Tests that the user is able to claim tokens if the World ID proof is valid
-    function testCanClaim(uint256 worldIDRoot, uint256 nullifierHash) public {
-        vm.warp(claimTime);
+    ////////////////////////////////////////////////////////////////
+    ///                       Claim tests                        ///
+    ////////////////////////////////////////////////////////////////
+
+
+    /// @notice Tests that the user is not able to claim grants with ids below 39
+    function test_cannotClaimBelow39_21(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(preGrant4_claimTime);
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        vm.prank(caller);
+        vm.expectRevert(IGrant.InvalidGrant.selector);
+        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
+    }
+
+    /// @notice Tests that the user is not able to claim grants with ids below 39
+    function test_cannotClaimBelow39_38(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(grant4_grant39_claimTime - 1 weeks);
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        vm.prank(caller);
+        vm.expectRevert(IGrant.InvalidGrant.selector);
+        airdrop.claim(38, user, worldIDRoot, nullifierHash, proof);
+    }
+
+    /// @notice Tests that the user is able to claim grant 39 if the World ID proof is valid
+    function test_CanClaim39(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(grant4_grant39_claimTime);
 
         vm.assume(worldIDRoot != 0 && nullifierHash != 0);
 
         assertEq(token.balanceOf(user), 0);
 
         vm.prank(caller);
-        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(39, user, worldIDRoot, nullifierHash, proof);
 
-        assertEq(token.balanceOf(user), grant.getAmount(21));
+        assertEq(token.balanceOf(user), grant.getAmount(39));
+    }
+
+    /// @notice Tests that the user is able to claim grant 39 in its 2nd month if the World ID proof is valid
+    function test_CanClaim39_2ndMonth(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(grant4_grant39_2ndMonth_claimTime);
+
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        assertEq(token.balanceOf(user), 0);
+
+        vm.prank(caller);
+        airdrop.claim(39, user, worldIDRoot, nullifierHash, proof);
+
+        assertEq(token.balanceOf(user), grant.getAmount(39));
     }
 
     /// @notice Tests that nullifier hash for the same action cannot be consumed twice
-    function testCannotDoubleClaim(uint256 worldIDRoot, uint256 nullifierHash) public {
-        vm.warp(claimTime);
+    function test_CannotDoubleClaim(uint256 worldIDRoot, uint256 nullifierHash) public {
+        uint256 grantId = 39;
+        vm.warp(grant4_grant39_claimTime);
         vm.assume(worldIDRoot != 0 && nullifierHash != 0);
 
         assertEq(token.balanceOf(user), 0);
 
         vm.prank(caller);
-        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(grantId, user, worldIDRoot, nullifierHash, proof);
 
-        assertEq(token.balanceOf(user), grant.getAmount(0));
+        assertEq(token.balanceOf(user), grant.getAmount(grantId));
 
         vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
         vm.prank(caller);
 
-        airdrop.claim(21, user, worldIDRoot, nullifierHash, proof);
+        airdrop.claim(grantId, user, worldIDRoot, nullifierHash, proof);
 
-        assertEq(token.balanceOf(user), grant.getAmount(0));
+        assertEq(token.balanceOf(user), grant.getAmount(grantId));
     }
 
-    /// @notice Tests that the user is able to claim tokens if the World ID proof is valid
-    function testCanClaimReservation(uint256 worldIDRoot) public {
-        vm.warp(claimTime + 2 weeks);
+    /// @notice Tests that the user cannot claim an already claimed grant
+    function test_CannotClaimAlreadyClaimedGrant_39(uint256 worldIDRoot, uint256 nullifierHash) public {
+        uint256 grantId = 39;
+        vm.warp(grant4_grant39_claimTime);
 
-        assertEq(grant.getCurrentId(), 22);
-        assertEq(grant.calculateId(claimTime), 21);
-
-        vm.assume(worldIDRoot != 0 && reservationNullifierHash != 0);
-
-        assertEq(token.balanceOf(user), 0);
-
-        airdrop.claimReserved(
-            claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature
-        );
-
-        assertEq(token.balanceOf(user), grant.getAmount(21));
-    }
-
-    /// @notice Tests that the user is able to claim tokens if the World ID proof is valid
-    function testCannotClaimClaimed(uint256 worldIDRoot) public {
-        vm.warp(claimTime);
-
-        vm.assume(worldIDRoot != 0 && reservationNullifierHash != 0);
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
 
         assertEq(token.balanceOf(user), 0);
 
         vm.prank(caller);
-        airdrop.claim(21, user, worldIDRoot, reservationNullifierHash, proof);
+        airdrop.claim(grantId, user, worldIDRoot, nullifierHash, proof);
 
-        assertEq(token.balanceOf(user), grant.getAmount(21));
+        assertEq(token.balanceOf(user), grant.getAmount(grantId));
 
-        vm.warp(claimTime + 2 weeks);
+        vm.warp(grant4_grant39_claimTime + 1 weeks);
 
         vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
-        airdrop.claimReserved(
-            claimTime, user, worldIDRoot, reservationNullifierHash, proof, signature
-        );
+        airdrop.claim(grantId, user, worldIDRoot, nullifierHash, proof);
+    }
+
+    /// @notice Tests that the user cannot claim an already claimed grant
+    function test_CannotClaimAlreadyClaimedGrant_40(uint256 worldIDRoot, uint256 nullifierHash) public {
+        uint256 grantId = 40;
+        vm.warp(grant4_grant39_2ndMonth_claimTime);
+
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        assertEq(token.balanceOf(user), 0);
+
+        vm.prank(caller);
+        airdrop.claim(grantId, user, worldIDRoot, nullifierHash, proof);
+
+        assertEq(token.balanceOf(user), grant.getAmount(grantId));
+
+        vm.warp(grant4_grant39_2ndMonth_claimTime + 1 weeks);
+
+        vm.expectRevert(RecurringGrantDrop.InvalidNullifier.selector);
+        airdrop.claim(grantId, user, worldIDRoot, nullifierHash, proof);
     }
 
     /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.
-    function testCannotClaimPast(uint256 worldIDRoot, uint256 nullifierHash) public {
-        vm.warp(claimTime + 14 days);
+    function test_CannotClaimPastGrant_21(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(preGrant4_claimTime + 14 days);
 
         vm.assume(worldIDRoot != 0 && nullifierHash != 0);
 
@@ -163,9 +201,25 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), 0);
     }
 
+     /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.
+    function test_CannotClaimPastGrant_39(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(grant4_grant39_2ndMonth_claimTime + 60 days);
+
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        assertEq(token.balanceOf(user), 0);
+
+        vm.expectRevert(IGrant.InvalidGrant.selector);
+        vm.prank(caller);
+
+        airdrop.claim(39, user, worldIDRoot, nullifierHash, proof);
+
+        assertEq(token.balanceOf(user), 0);
+    }
+
     /// @notice Tests that the user is *not* able to claim future grants.
-    function testCannotClaimFuture(uint256 worldIDRoot, uint256 nullifierHash) public {
-        vm.warp(claimTime);
+    function test_CannotClaimFuture_22(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(preGrant4_claimTime);
 
         vm.assume(worldIDRoot != 0 && nullifierHash != 0);
 
@@ -179,8 +233,69 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), 0);
     }
 
+    /// @notice Tests that the user is *not* able to claim future grants.
+    function test_CannotClaimFuture_55(uint256 worldIDRoot, uint256 nullifierHash) public {
+        vm.warp(grant4_grant39_2ndMonth_claimTime + 4 weeks);
+
+        vm.assume(worldIDRoot != 0 && nullifierHash != 0);
+
+        assertEq(token.balanceOf(user), 0);
+
+        vm.expectRevert(IGrant.InvalidGrant.selector);
+        vm.prank(caller);
+
+        airdrop.claim(55, user, worldIDRoot, nullifierHash, proof);
+
+        assertEq(token.balanceOf(user), 0);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    ///                       Config tests                       ///
+    ////////////////////////////////////////////////////////////////
+
+    /// @notice Tests that AddNullifierHashBlocker can only be called by the manager
+    function testFuzz_CannotAddNullifierHashBlockerIfNotManager(address otherAccount) public {
+        vm.assume(manager != otherAccount);
+        vm.prank(otherAccount);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, otherAccount));
+        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+    }
+
+    /// @notice Tests that AddNullifierHashBlocker can only be called by the manager
+    function test_CanAddNullifierHashBlockerIfManager() public {
+        vm.prank(manager);
+        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+    }
+
+    /// @notice Tests that setNullifierHash can only be called by approved blockers
+    function test_setNullifierHash_revertsIfNotAllowed(address setter) public {
+        vm.prank(setter);
+        vm.expectRevert(abi.encodeWithSelector(RecurringGrantDrop.UnauthorizedNullifierHashBlocker.selector));
+        airdrop.setNullifierHash(10);
+    }
+
+    /// @notice Tests that setNullifierHash can only be called by approved blockers
+    function test_setNullifierHash_canBeCalledByAllowedBlocker() public {
+        vm.prank(manager);
+        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+        vm.prank(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+        airdrop.setNullifierHash(1);
+    }
+
+    /// @notice Tests that setNullifierHash can only be called once by approved blockers
+    function test_setNullifierHash_revertsIfCalledTwice() public {
+        vm.prank(manager);
+        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+        vm.prank(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+        airdrop.setNullifierHash(1);
+
+        vm.prank(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
+        vm.expectRevert(RecurringGrantDrop.NullifierHashAlreadyBlocked.selector);
+        airdrop.setNullifierHash(1);
+    }
+
     /// @notice Tests that the manager can update the grant
-    function testUpdateGrant() public {
+    function test_UpdateGrant() public {
         WLDGrant grant2 = new WLDGrant();
         assertEq(address(airdrop.grant()), address(grant));
 
@@ -191,7 +306,7 @@ contract RecurringGrantDropTest is PRBTest {
     }
 
     /// @notice Tests that anyone that is not the manager can't update grant
-    function testCannotUpdateGrantIfNotManager(address notManager) public {
+    function test_CannotUpdateGrantIfNotManager(address notManager) public {
         WLDGrant grant2 = new WLDGrant();
         vm.assume(notManager != manager && notManager != address(0));
         assertEq(address(airdrop.grant()), address(grant));
