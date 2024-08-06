@@ -294,6 +294,26 @@ async function deployAirdropReservations(config) {
   }
 }
 
+async function deployLaunchGrantLegacy(config) {
+  dotenv.config();
+
+  await getPrivateKey(config);
+
+  const spinner = ora(`Deploying LaunchGrantLegacy contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/LaunchGrantLegacy.s.sol:DeployLaunchGrant--fork-url ${config.ethereumRpcUrl} \
+      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed LaunchGrantLegacy contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of LaunchGrantLegacy has failed.');
+  }
+}
+
 async function deployWLDGrantPreGrant4(config) {
   dotenv.config();
 
@@ -386,6 +406,17 @@ async function addAllowedNullifierHashBlocker(config) {
 
 async function main() {
   const program = new Command();
+
+  program
+    .name('deploy-launch-grant-legacy')
+    .command('deploy-launch-grant-legacy')
+    .description('Deploys the LaunchGrantLegacy contract')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await deployLaunchGrantLegacy(config);
+      await saveConfiguration(config);
+    });
 
   program
     .name('deploy-airdrop')
