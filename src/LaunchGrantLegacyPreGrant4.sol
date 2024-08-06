@@ -41,5 +41,8 @@ contract LaunchGrantLegacy is IGrant {
 
         // Only until 20 can be redeemed through this contract.
         if (grantId >= 21) revert InvalidGrant();
+
+        // Reservations are only valid for 12 months.
+        if (block.timestamp > timestamp + 52 weeks) revert InvalidGrant();
     }
 }
