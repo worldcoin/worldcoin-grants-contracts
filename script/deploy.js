@@ -277,7 +277,6 @@ async function deployAirdropReservations(config) {
   await getWorldIDIdentityManagerRouterAddress(config);
   await saveConfiguration(config);
   await getAirdropParameters(config);
-  await getRecurringGrantDropAddress(config);
 
   const spinner = ora(`Deploying RecurringGrantDropReservations contract...`).start();
 

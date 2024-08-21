@@ -5,10 +5,9 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {IGrant} from "./IGrantPreGrant4.sol";
+import {IGrantReservations} from "./IGrantReservations.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
-import {RecurringGrantDrop} from "./RecurringGrantDropPreGrant4.sol";
 
 /// @title RecurringGrantDropReservations
 /// @author Worldcoin
@@ -31,9 +30,7 @@ contract RecurringGrantDropReservations is Ownable2Step {
     address public holder;
 
     /// @notice The grant instance used
-    IGrant public grant;
-
-    RecurringGrantDrop public recurringGrantDrop;
+    IGrantReservations public grant;
 
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
     mapping(uint256 => bool) public nullifierHashes;
@@ -81,8 +78,7 @@ contract RecurringGrantDropReservations is Ownable2Step {
         uint256 _groupId,
         ERC20 _token,
         address _holder,
-        IGrant _grant,
-        RecurringGrantDrop _recurringGrantDrop
+        IGrantReservations _grant
     );
 
     /// @notice Emitted when a grant is successfully claimed
@@ -107,11 +103,7 @@ contract RecurringGrantDropReservations is Ownable2Step {
 
     /// @notice Emitted when the grant is changed
     /// @param grant The new grant instance
-    event GrantUpdated(IGrant grant);
-
-    /// @notice Emitted when the recurring grant drop is changed
-    /// @param recurringGrantDrop The new recurring grant drop instance
-    event RecurringGrantDropUpdated(RecurringGrantDrop recurringGrantDrop);
+    event GrantUpdated(IGrantReservations grant);
 
     /// @notice Emitted when an allowed reservation signer is added
     /// @param signer The new signer
@@ -136,23 +128,20 @@ contract RecurringGrantDropReservations is Ownable2Step {
         uint256 _groupId,
         ERC20 _token,
         address _holder,
-        IGrant _grant,
-        RecurringGrantDrop _recurringGrantDrop
+        IGrantReservations _grant
     ) Ownable(msg.sender) {
         if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
         if (address(_token) == address(0)) revert InvalidConfiguration();
         if (address(_holder) == address(0)) revert InvalidConfiguration();
         if (address(_grant) == address(0)) revert InvalidConfiguration();
-        if (address(_recurringGrantDrop) == address(0)) revert InvalidConfiguration();
 
         worldIdRouter = _worldIdRouter;
         groupId = _groupId;
         token = _token;
         holder = _holder;
         grant = _grant;
-        recurringGrantDrop = _recurringGrantDrop;
 
-        emit RecurringGrantDropInitialized(worldIdRouter, groupId, token, holder, grant, recurringGrantDrop);
+        emit RecurringGrantDropInitialized(worldIdRouter, groupId, token, holder, grant);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -205,7 +194,6 @@ contract RecurringGrantDropReservations is Ownable2Step {
         if (timestamp > block.timestamp) revert InvalidTimestamp();
 
         if (nullifierHashes[nullifierHash]) revert InvalidNullifier();
-        if (recurringGrantDrop.nullifierHashes(nullifierHash)) revert InvalidNullifier();
 
         grant.checkReservationValidity(timestamp);
 
@@ -281,20 +269,11 @@ contract RecurringGrantDropReservations is Ownable2Step {
 
     /// @notice Update the grant
     /// @param _grant The new grant
-    function setGrant(IGrant _grant) external onlyOwner {
+    function setGrant(IGrantReservations _grant) external onlyOwner {
         if (address(_grant) == address(0)) revert InvalidConfiguration();
 
         grant = _grant;
         emit GrantUpdated(_grant);
-    }
-
-    /// @notice Update the recurring grant drop
-    /// @param _recurringGrantDrop The new recurring grant drop
-    function setRecurringGrantDrop(RecurringGrantDrop _recurringGrantDrop) external onlyOwner {
-        if (address(_recurringGrantDrop) == address(0)) revert InvalidConfiguration();
-
-        recurringGrantDrop = _recurringGrantDrop;
-        emit RecurringGrantDropUpdated(_recurringGrantDrop);
     }
 
     /// @notice Prevents the owner from renouncing ownership
