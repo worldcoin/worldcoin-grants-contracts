@@ -16,10 +16,6 @@ contract RecurringGrantDrop is Ownable2Step {
     ///                              CONFIG STORAGE                            ///
     //////////////////////////////////////////////////////////////////////////////
 
-    /// @dev The prefix used for the grant ID external nullifier hash
-    uint256 public constant WORLDCHAIN_NULLIFIER_HASH_PREFIX =
-        0x1E00000000000000000000000000000000000000000000000000000000000000;
-
     /// @dev The WorldID router instance that will be used for managing groups and verifying proofs
     IWorldIDGroups public worldIdRouter;
 
@@ -209,7 +205,7 @@ contract RecurringGrantDrop is Ownable2Step {
             groupId,
             uint256(keccak256(abi.encodePacked(receiver))) >> 8,
             nullifierHash,
-            grantId + WORLDCHAIN_NULLIFIER_HASH_PREFIX,
+            grantId,
             proof
         );
     }
