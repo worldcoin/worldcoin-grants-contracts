@@ -15,6 +15,9 @@ contract Grants4FirstBatch is Ownable2Step {
     /// @notice Error that is thrown if the input arrays have different lengths
     error LengthMismatch();
 
+    /// @notice Error that is thrown if a proposed configuration address is the zero address
+    error ZeroAddress();
+
     ////////////////////////////////////////////////////////////////
     //                           EVENTS                           //
     ////////////////////////////////////////////////////////////////
@@ -71,6 +74,9 @@ contract Grants4FirstBatch is Ownable2Step {
     )
         Ownable(msg.sender)
     {
+        if (_allowanceModuleAddress == address(0) || _wldToken == address(0) || _holder == address(0) || _recurringGrantDrop == address(0)) {
+            revert ZeroAddress();
+        }
         ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
         WLD_TOKEN = _wldToken;
         HOLDER = GnosisSafe(_holder);
@@ -119,31 +125,49 @@ contract Grants4FirstBatch is Ownable2Step {
     ////////////////////////////////////////////////////////////////
 
     function setAllowanceModule(address _allowanceModuleAddress) external onlyOwner {
+        if (_allowanceModuleAddress == address(0)) {
+            revert ZeroAddress();
+        }
         ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
         emit AllowanceModuleSet(_allowanceModuleAddress);
     }
 
     function setWldToken(address _wldToken) external onlyOwner {
+        if (_wldToken == address(0)) {
+            revert ZeroAddress();
+        }
         WLD_TOKEN = _wldToken;
         emit WldTokenSet(_wldToken);
     }
 
     function setHolder(address _holder) external onlyOwner {
+        if (_holder == address(0)) {
+            revert ZeroAddress();
+        }
         HOLDER = GnosisSafe(_holder);
         emit HolderSet(_holder);
     }
 
     function setRecurringGrantDrop(IRecurringGrantDrop _recurringGrantDrop) external onlyOwner {
+        if (address(_recurringGrantDrop) == address(0)) {
+            revert ZeroAddress();
+        }
         RECURRING_GRANT_DROP = _recurringGrantDrop;
         emit RecurringGrantDropSet(address(_recurringGrantDrop));
     }
 
     function addCaller(address _caller) external onlyOwner {
+        if (_caller == address(0)) {
+            revert ZeroAddress();
+        }
         allowedCallers[_caller] = true;
         emit CallerAdded(_caller);
     }
 
     function removeCaller(address _caller) external onlyOwner {
+        if (_caller == address(0)) {
+            revert ZeroAddress();
+        }
         delete allowedCallers[_caller];
         emit CallerRemoved(_caller);
     }
