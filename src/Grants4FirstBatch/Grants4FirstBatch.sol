@@ -173,11 +173,11 @@ contract Grants4FirstBatch is Ownable2Step {
     }
 }
 
-interface GnosisSafe {
-}
-
 interface IRecurringGrantDrop {
     function setNullifierHash(uint256 nullifierHash) external;
+}
+
+interface GnosisSafe {
 }
 
 interface AllowanceModule {
