@@ -173,6 +173,7 @@ contract Grants4FirstBatch is Ownable2Step {
     }
 }
 
+// an interface for the RecurringGrantDrop of this commit https://github.com/worldcoin/worldcoin-grants-contracts/commit/68cf64877cb59d5e96b3894a5c79f63a4c0ffa1f
 interface IRecurringGrantDrop {
     function setNullifierHash(uint256 nullifierHash) external;
 }
@@ -180,6 +181,9 @@ interface IRecurringGrantDrop {
 interface GnosisSafe {
 }
 
+// an interface for the AllowanceModule contract deployed at these addresses
+// optimism: 0x948BDE4d8670500b0F62cF5c745C82ABe7c81A65
+// worldchain: 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7
 interface AllowanceModule {
     function executeAllowanceTransfer(GnosisSafe safe, address token, address payable to, uint96 amount) external;
 }
