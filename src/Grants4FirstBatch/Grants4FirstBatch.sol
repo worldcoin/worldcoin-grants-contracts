@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { Ownable2Step } from "./Ownable2Step.sol";
-import { Ownable } from "./Ownable.sol";
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
 contract Grants4FirstBatch is Ownable2Step {
     ////////////////////////////////////////////////////////////////
