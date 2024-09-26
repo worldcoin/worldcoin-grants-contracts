@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { Ownable2Step } from "./Ownable2Step.sol";
-import { Ownable } from "./Ownable.sol";
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
 contract Grants4FirstBatch is Ownable2Step {
     ////////////////////////////////////////////////////////////////
@@ -14,6 +14,9 @@ contract Grants4FirstBatch is Ownable2Step {
 
     /// @notice Error that is thrown if the input arrays have different lengths
     error LengthMismatch();
+
+    /// @notice Error that is thrown if a proposed configuration address is the zero address
+    error ZeroAddress();
 
     ////////////////////////////////////////////////////////////////
     //                           EVENTS                           //
@@ -71,6 +74,9 @@ contract Grants4FirstBatch is Ownable2Step {
     )
         Ownable(msg.sender)
     {
+        if (_allowanceModuleAddress == address(0) || _wldToken == address(0) || _holder == address(0) || _recurringGrantDrop == address(0)) {
+            revert ZeroAddress();
+        }
         ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
         WLD_TOKEN = _wldToken;
         HOLDER = GnosisSafe(_holder);
@@ -119,63 +125,65 @@ contract Grants4FirstBatch is Ownable2Step {
     ////////////////////////////////////////////////////////////////
 
     function setAllowanceModule(address _allowanceModuleAddress) external onlyOwner {
+        if (_allowanceModuleAddress == address(0)) {
+            revert ZeroAddress();
+        }
         ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
         emit AllowanceModuleSet(_allowanceModuleAddress);
     }
 
     function setWldToken(address _wldToken) external onlyOwner {
+        if (_wldToken == address(0)) {
+            revert ZeroAddress();
+        }
         WLD_TOKEN = _wldToken;
         emit WldTokenSet(_wldToken);
     }
 
     function setHolder(address _holder) external onlyOwner {
+        if (_holder == address(0)) {
+            revert ZeroAddress();
+        }
         HOLDER = GnosisSafe(_holder);
         emit HolderSet(_holder);
     }
 
     function setRecurringGrantDrop(IRecurringGrantDrop _recurringGrantDrop) external onlyOwner {
+        if (address(_recurringGrantDrop) == address(0)) {
+            revert ZeroAddress();
+        }
         RECURRING_GRANT_DROP = _recurringGrantDrop;
         emit RecurringGrantDropSet(address(_recurringGrantDrop));
     }
 
     function addCaller(address _caller) external onlyOwner {
+        if (_caller == address(0)) {
+            revert ZeroAddress();
+        }
         allowedCallers[_caller] = true;
         emit CallerAdded(_caller);
     }
 
     function removeCaller(address _caller) external onlyOwner {
+        if (_caller == address(0)) {
+            revert ZeroAddress();
+        }
         delete allowedCallers[_caller];
         emit CallerRemoved(_caller);
     }
 }
 
-interface GnosisSafe {
-    /// @dev Allows a Module to execute a Safe transaction without any further confirmations.
-    /// @param to Destination address of module transaction.
-    /// @param value Ether value of module transaction.
-    /// @param data Data payload of module transaction.
-    /// @param operation Operation type of module transaction.
-    function execTransactionFromModule(
-        address to,
-        uint256 value,
-        bytes calldata data,
-        Enum.Operation operation
-    )
-        external
-        returns (bool success);
-}
-
-contract Enum {
-    enum Operation {
-        Call,
-        DelegateCall
-    }
-}
-
+// an interface for the RecurringGrantDrop of this commit https://github.com/worldcoin/worldcoin-grants-contracts/commit/68cf64877cb59d5e96b3894a5c79f63a4c0ffa1f
 interface IRecurringGrantDrop {
     function setNullifierHash(uint256 nullifierHash) external;
 }
 
+interface GnosisSafe {
+}
+
+// an interface for the AllowanceModule contract deployed at these addresses
+// optimism: 0x948BDE4d8670500b0F62cF5c745C82ABe7c81A65
+// worldchain: 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7
 interface AllowanceModule {
     function executeAllowanceTransfer(GnosisSafe safe, address token, address payable to, uint96 amount) external;
 }

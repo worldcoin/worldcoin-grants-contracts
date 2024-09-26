@@ -5,9 +5,8 @@ import {Script} from "forge-std/Script.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {RecurringGrantDropReservations} from "src/RecurringGrantDropReservations.sol";
-import {RecurringGrantDrop} from "src/RecurringGrantDropPreGrant4.sol";
-import {WLDGrant} from "src/WLDGrantPreGrant4_new.sol";
-import {IGrant} from "src/IGrantPreGrant4.sol";
+import {WLDGrantReservations} from "src/WLDGrantReservations.sol";
+import {IGrantReservations} from "src/IGrantReservations.sol";
 
 /// @title Deployment script for RecurringGrantDrop
 /// @author Worldcoin
@@ -16,7 +15,7 @@ import {IGrant} from "src/IGrantPreGrant4.sol";
 /// Can be run by executing `make deploy-airdrop` (assumes a deployment of world-id-contracts or a mock)
 contract DeployRecurringGrantDropReservations is Script {
     RecurringGrantDropReservations public airdrop;
-    IGrant grant;
+    IGrantReservations grant;
 
     ///////////////////////////////////////////////////////////////////
     ///                            CONFIG                           ///
@@ -35,7 +34,6 @@ contract DeployRecurringGrantDropReservations is Script {
         abi.decode(vm.parseJson(json, ".worldIDRouterAddress"), (address));
     IWorldIDGroups public worldIdRouter = IWorldIDGroups(worldIDRouterAddress);
 
-    RecurringGrantDrop public recurringGrantDropAddress = RecurringGrantDrop(abi.decode(vm.parseJson(json, ".recurringGrantDropAddress"), (address)));
     uint256 public groupId = abi.decode(vm.parseJson(json, ".groupId"), (uint256));
     address public erc20Address = abi.decode(vm.parseJson(json, ".erc20Address"), (address));
     address public holder = abi.decode(vm.parseJson(json, ".holderAddress"), (address));
@@ -45,9 +43,9 @@ contract DeployRecurringGrantDropReservations is Script {
     function run() external {
         vm.startBroadcast(privateKey);
 
-        grant = new WLDGrant();
+        grant = new WLDGrantReservations();
 
-        airdrop = new RecurringGrantDropReservations(worldIdRouter, groupId, token, holder, grant, recurringGrantDropAddress);
+        airdrop = new RecurringGrantDropReservations(worldIdRouter, groupId, token, holder, grant);
 
         vm.stopBroadcast();
     }
