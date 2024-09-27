@@ -75,7 +75,6 @@ contract RecurringGrantDropTest is PRBTest {
     ///                       Claim tests                        ///
     ////////////////////////////////////////////////////////////////
 
-
     /// @notice Tests that the user is not able to claim grants with ids below 39
     function test_cannotClaimBelow39_21(uint256 worldIDRoot, uint256 nullifierHash) public {
         vm.warp(preGrant4_claimTime);
@@ -146,7 +145,9 @@ contract RecurringGrantDropTest is PRBTest {
     }
 
     /// @notice Tests that the user cannot claim an already claimed grant
-    function test_CannotClaimAlreadyClaimedGrant_39(uint256 worldIDRoot, uint256 nullifierHash) public {
+    function test_CannotClaimAlreadyClaimedGrant_39(uint256 worldIDRoot, uint256 nullifierHash)
+        public
+    {
         uint256 grantId = 39;
         vm.warp(grant4_grant39_claimTime);
 
@@ -166,7 +167,9 @@ contract RecurringGrantDropTest is PRBTest {
     }
 
     /// @notice Tests that the user cannot claim an already claimed grant
-    function test_CannotClaimAlreadyClaimedGrant_40(uint256 worldIDRoot, uint256 nullifierHash) public {
+    function test_CannotClaimAlreadyClaimedGrant_40(uint256 worldIDRoot, uint256 nullifierHash)
+        public
+    {
         uint256 grantId = 40;
         vm.warp(grant4_grant39_2ndMonth_claimTime);
 
@@ -201,7 +204,7 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(token.balanceOf(user), 0);
     }
 
-     /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.
+    /// @notice Tests that the user is *not* able to claim old grants if they are not valid anymore.
     function test_CannotClaimPastGrant_39(uint256 worldIDRoot, uint256 nullifierHash) public {
         vm.warp(grant4_grant39_2ndMonth_claimTime + 60 days);
 
@@ -257,7 +260,9 @@ contract RecurringGrantDropTest is PRBTest {
     function testFuzz_CannotAddNullifierHashBlockerIfNotManager(address otherAccount) public {
         vm.assume(manager != otherAccount);
         vm.prank(otherAccount);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, otherAccount));
+        vm.expectRevert(
+            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, otherAccount)
+        );
         airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
     }
 
@@ -270,7 +275,9 @@ contract RecurringGrantDropTest is PRBTest {
     /// @notice Tests that setNullifierHash can only be called by approved blockers
     function test_setNullifierHash_revertsIfNotAllowed(address setter) public {
         vm.prank(setter);
-        vm.expectRevert(abi.encodeWithSelector(RecurringGrantDrop.UnauthorizedNullifierHashBlocker.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RecurringGrantDrop.UnauthorizedNullifierHashBlocker.selector)
+        );
         airdrop.setNullifierHash(10);
     }
 

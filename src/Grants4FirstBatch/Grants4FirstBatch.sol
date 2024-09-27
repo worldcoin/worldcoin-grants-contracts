@@ -71,10 +71,11 @@ contract Grants4FirstBatch is Ownable2Step {
         address _wldToken,
         address _holder,
         address _recurringGrantDrop
-    )
-        Ownable(msg.sender)
-    {
-        if (_allowanceModuleAddress == address(0) || _wldToken == address(0) || _holder == address(0) || _recurringGrantDrop == address(0)) {
+    ) Ownable(msg.sender) {
+        if (
+            _allowanceModuleAddress == address(0) || _wldToken == address(0)
+                || _holder == address(0) || _recurringGrantDrop == address(0)
+        ) {
             revert ZeroAddress();
         }
         ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
@@ -95,10 +96,10 @@ contract Grants4FirstBatch is Ownable2Step {
         uint256[] calldata _nullifierHashes,
         address[] calldata _recipients,
         uint256[] calldata _amounts
-    )
-        external
-    {
-        if (!(_nullifierHashes.length == _recipients.length && _recipients.length == _amounts.length)) {
+    ) external {
+        if (
+            !(_nullifierHashes.length == _recipients.length && _recipients.length == _amounts.length)
+        ) {
             revert LengthMismatch();
         }
 
@@ -114,7 +115,7 @@ contract Grants4FirstBatch is Ownable2Step {
                     HOLDER, WLD_TOKEN, payable(_recipients[i]), uint96(_amounts[i])
                 );
                 successfulExecutions++;
-            } catch (bytes memory) { }
+            } catch (bytes memory) {}
         }
 
         emit BatchProcessed(batchSize, successfulExecutions);
@@ -178,12 +179,16 @@ interface IRecurringGrantDrop {
     function setNullifierHash(uint256 nullifierHash) external;
 }
 
-interface GnosisSafe {
-}
+interface GnosisSafe {}
 
 // an interface for the AllowanceModule contract deployed at these addresses
 // optimism: 0x948BDE4d8670500b0F62cF5c745C82ABe7c81A65
 // worldchain: 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7
 interface AllowanceModule {
-    function executeAllowanceTransfer(GnosisSafe safe, address token, address payable to, uint96 amount) external;
+    function executeAllowanceTransfer(
+        GnosisSafe safe,
+        address token,
+        address payable to,
+        uint96 amount
+    ) external;
 }

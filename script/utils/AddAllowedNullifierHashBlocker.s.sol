@@ -18,8 +18,10 @@ contract AddAllowedNullifierHashBlocker is Script {
     string public json = vm.readFile(path);
 
     uint256 private privateKey = abi.decode(vm.parseJson(json, ".privateKey"), (uint256));
-    address private rgdAddress = abi.decode(vm.parseJson(json, ".recurringGrantDropAddress"), (address));
-    address private allowedNullifierHashBlocker = abi.decode(vm.parseJson(json, ".allowedNullifierHashBlocker"), (address));
+    address private rgdAddress =
+        abi.decode(vm.parseJson(json, ".recurringGrantDropAddress"), (address));
+    address private allowedNullifierHashBlocker =
+        abi.decode(vm.parseJson(json, ".allowedNullifierHashBlocker"), (address));
 
     RecurringGrantDrop rgd = RecurringGrantDrop(rgdAddress);
 

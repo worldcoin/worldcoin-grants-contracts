@@ -17,35 +17,35 @@ contract WLDGrantTest is PRBTest {
     }
 
     function testFuzz_checkValidityReverts(uint256 grantId) public {
-      vm.assume(grantId < 21 || grantId > 38);
-      vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
-      grant.checkValidity(grantId);
+        vm.assume(grantId < 21 || grantId > 38);
+        vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
+        grant.checkValidity(grantId);
     }
 
     function test_checkValidity_grant38() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds - 1 weeks);
-      grant.checkValidity(38);
+        vm.warp(grant4LaunchDayTimestampInSeconds - 1 weeks);
+        grant.checkValidity(38);
     }
 
     function test_checkValidity_revertsGreaterThanGrant38() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds + 1 weeks);
-      vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
-      grant.checkValidity(39);
+        vm.warp(grant4LaunchDayTimestampInSeconds + 1 weeks);
+        vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
+        grant.checkValidity(39);
     }
 
     function testFuzz_checkReservationValidityReverts(uint256 timestamp) public {
-      vm.assume(timestamp > grant4LaunchDayTimestampInSeconds);
-      vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
-      grant.checkReservationValidity(timestamp);
+        vm.assume(timestamp > grant4LaunchDayTimestampInSeconds);
+        vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
+        grant.checkReservationValidity(timestamp);
     }
 
     function test_checkReservation_grant37() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds - (1 weeks));
-      grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (4 weeks));
+        vm.warp(grant4LaunchDayTimestampInSeconds - (1 weeks));
+        grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (4 weeks));
     }
 
     function test_checkReservation_grant38() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds);
-      grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (1 weeks));
+        vm.warp(grant4LaunchDayTimestampInSeconds);
+        grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (1 weeks));
     }
 }

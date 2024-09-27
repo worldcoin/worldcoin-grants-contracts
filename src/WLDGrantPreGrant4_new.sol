@@ -5,7 +5,7 @@ import {IGrant} from "./IGrantPreGrant4.sol";
 
 /**
  * This is the WLDGrant for grantIds [21;38] post grantId 38
- * 
+ *
  * While we no longer support claims in this contract for the given range,
  * we do still accept reservations
  */
