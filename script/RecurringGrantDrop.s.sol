@@ -43,6 +43,13 @@ contract DeployRecurringGrantDrop is Script {
     uint256 public groupId = abi.decode(vm.parseJson(json, ".groupId"), (uint256));
     address public erc20Address = abi.decode(vm.parseJson(json, ".erc20Address"), (address));
     address public holder = abi.decode(vm.parseJson(json, ".holderAddress"), (address));
+
+    // Worldchain Address
+    address public allowanceModule = 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7;
+
+    // Optimism Address
+    // address public allowanceModule = 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7;
+
     //bool public staging = abi.decode(vm.parseJson(json, ".staging"), (bool));
     //uint256 public startMonth = abi.decode(vm.parseJson(json, ".startMonth"), (uint256));
     //uint256 public startYear = abi.decode(vm.parseJson(json, ".startYear"), (uint256));
@@ -57,7 +64,8 @@ contract DeployRecurringGrantDrop is Script {
         //if (staging) grant = new StagingGrant(startOffset, amount);
         grant = new WLDGrant();
 
-        airdrop = new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant);
+        airdrop =
+            new RecurringGrantDrop(worldIdRouter, groupId, token, holder, grant, allowanceModule);
 
         // if (!staging) {
         //     grantLegacy = new LaunchGrantLegacy();
