@@ -5,9 +5,12 @@ import {PRBTest} from "@prb/test/PRBTest.sol";
 import {WLDGrant} from "../WLDGrant.sol";
 import {IGrant} from "../IGrant.sol";
 
-
 contract WLDGrantHarness is WLDGrant {
-    function expose_calculateYearAndMonth(uint256 timestamp) public pure returns (uint256, uint256) {
+    function expose_calculateYearAndMonth(uint256 timestamp)
+        public
+        pure
+        returns (uint256, uint256)
+    {
         return _calculateYearAndMonth(timestamp);
     }
 
@@ -128,7 +131,7 @@ contract WLDGrantTest is PRBTest {
     //         assertEq(two, 43);
     //     }
     // }
-    
+
     //     function test_activeGrants_2025_01_01() public {
 
     //     for (uint64 timestamp = 1735689600; timestamp < 1737504000; timestamp++) {
@@ -1169,7 +1172,7 @@ contract WLDGrantTest is PRBTest {
     //         assertEq(two, 101);
     //     }
     // }
-    
+
     // function test_activeGrants_2029_11_01() public {
     //     for (uint64 timestamp = 1888185600; timestamp < 1889913600; timestamp++) {
     //         vm.warp(timestamp);
@@ -1210,48 +1213,48 @@ contract WLDGrantTest is PRBTest {
 
     function test_checkValidity_August2024_grant39() public {
         vm.warp(1722470400);
-        grant.checkValidity(39);   
+        grant.checkValidity(39);
     }
 
     function test_checkValidity_September2024_grant39() public {
         vm.warp(1725148800);
-        grant.checkValidity(39);   
+        grant.checkValidity(39);
     }
 
     function test_checkValidity_September2024_grant40() public {
         vm.warp(1725148800);
-        grant.checkValidity(40);   
+        grant.checkValidity(40);
     }
 
     function test_checkValidity_January2026_grant55() public {
         vm.warp(1767225600);
-        grant.checkValidity(55);   
+        grant.checkValidity(55);
     }
 
     function test_checkValidity_January2026_grant56() public {
         vm.warp(1767225600);
-        grant.checkValidity(56);   
+        grant.checkValidity(56);
     }
 
     function test_checkValidity_February2026_grant56() public {
         vm.warp(1772323199);
-        grant.checkValidity(56);   
+        grant.checkValidity(56);
     }
 
     function test_checkValidity_Feburary2026_grant57() public {
         vm.warp(1772323199);
-        grant.checkValidity(57);   
+        grant.checkValidity(57);
     }
-    
+
     function test_checkValidity_revertIfGrantIdLessThan21() public {
         vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
-        grant.checkValidity(20);   
+        grant.checkValidity(20);
     }
 
     function test_checkValidity_revertIfGrantIdLessThan38ButGrant4LaunchHappened() public {
         vm.warp(1722470400);
         vm.expectRevert(abi.encodeWithSelector(IGrant.InvalidGrant.selector));
-        grant.checkValidity(38);   
+        grant.checkValidity(38);
     }
 
     ////////////////////////////////////////////////////////////////

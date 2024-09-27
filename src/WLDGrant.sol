@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import {IGrant} from "./IGrant.sol";
 
 contract WLDGrant is IGrant {
-    
     // @notice Launch day timestamp in seconds.
     uint256 internal constant launchDayTimestampInSeconds = 1690167600; // Monday, 24 July 2023 03:00:00 GMT
 
@@ -125,9 +124,8 @@ contract WLDGrant is IGrant {
             return 0;
         }
 
-        return  (currentYear - 2024) * 12 + currentMonth - 8;
+        return (currentYear - 2024) * 12 + currentMonth - 8;
     }
-
 
     /// @notice Returns the current year and month based on timestamp
     /// @notice Algorithm is taken from https://aa.usno.navy.mil/faq/JD_formula

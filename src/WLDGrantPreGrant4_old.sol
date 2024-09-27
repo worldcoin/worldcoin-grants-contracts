@@ -5,7 +5,7 @@ import {IGrant} from "./IGrantPreGrant4.sol";
 
 /**
  * This was the original WLDGrant for grantIds [21;38]
- * 
+ *
  * It has been replaced by "WLDGrantPreGrant4_new" and is no longer called by of our contracts.
  */
 contract WLDGrant is IGrant {
