@@ -45,7 +45,7 @@ contract RecurringGrantDropReservations is Ownable2Step {
 
     /// @notice address of the Safe Allowance Module
     AllowanceModule public allowanceModule;
-
+    
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
     //////////////////////////////////////////////////////////////////////////////

@@ -37,40 +37,42 @@ contract WLDGrantReservationsTest is PRBTest {
     }
 
     function test_checkReservationValidity_grant13() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds);
-      grant.checkReservationValidity(launchDayTimestampInSeconds + 3 days);
+        vm.warp(grant4LaunchDayTimestampInSeconds);
+        grant.checkReservationValidity(launchDayTimestampInSeconds + 3 days);
     }
 
     function test_checkReservationValidity_grant38() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds + 1 weeks);
-      grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - 1 weeks);
+        vm.warp(grant4LaunchDayTimestampInSeconds + 1 weeks);
+        grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - 1 weeks);
     }
 
     function test_checkReservationValidity_revertsGreaterThanGrant38() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds + 10 weeks);
-      vm.expectRevert(abi.encodeWithSelector(IGrantReservations.InvalidGrant.selector));
-      grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds + 1 weeks);
+        vm.warp(grant4LaunchDayTimestampInSeconds + 10 weeks);
+        vm.expectRevert(abi.encodeWithSelector(IGrantReservations.InvalidGrant.selector));
+        grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds + 1 weeks);
     }
 
     function test_checkReservationValidity_revertsLessThan13() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds);
-      vm.expectRevert(abi.encodeWithSelector(IGrantReservations.InvalidGrant.selector));
-      grant.checkReservationValidity(launchDayTimestampInSeconds - 1 weeks);
+        vm.warp(grant4LaunchDayTimestampInSeconds);
+        vm.expectRevert(abi.encodeWithSelector(IGrantReservations.InvalidGrant.selector));
+        grant.checkReservationValidity(launchDayTimestampInSeconds - 1 weeks);
     }
 
     function testFuzz_checkReservationValidityReverts(uint256 timestamp) public {
-      vm.assume(timestamp > grant4LaunchDayTimestampInSeconds || timestamp < launchDayTimestampInSeconds);
-      vm.expectRevert(abi.encodeWithSelector(IGrantReservations.InvalidGrant.selector));
-      grant.checkReservationValidity(timestamp);
+        vm.assume(
+            timestamp > grant4LaunchDayTimestampInSeconds || timestamp < launchDayTimestampInSeconds
+        );
+        vm.expectRevert(abi.encodeWithSelector(IGrantReservations.InvalidGrant.selector));
+        grant.checkReservationValidity(timestamp);
     }
 
     function test_checkReservation_grant37() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds - (1 weeks));
-      grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (4 weeks));
+        vm.warp(grant4LaunchDayTimestampInSeconds - (1 weeks));
+        grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (4 weeks));
     }
 
     function test_checkReservation_grant38() public {
-      vm.warp(grant4LaunchDayTimestampInSeconds);
-      grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (1 weeks));
+        vm.warp(grant4LaunchDayTimestampInSeconds);
+        grant.checkReservationValidity(grant4LaunchDayTimestampInSeconds - (1 weeks));
     }
 }

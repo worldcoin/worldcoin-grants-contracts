@@ -88,6 +88,7 @@ contract RecurringGrantDrop is Ownable2Step {
         address _holder,
         IGrant _grant,
         address _allowanceModuleAddress
+
     );
 
     /// @notice Emitted when a grant is successfully claimed
