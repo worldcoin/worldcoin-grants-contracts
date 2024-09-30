@@ -8,6 +8,7 @@ import {RecurringGrantDrop} from "../RecurringGrantDrop.sol";
 import {WLDGrant} from "../WLDGrant.sol";
 import {IGrant} from "../IGrant.sol";
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {MockAllowanceModule} from "./mock/MockAllowanceModule.sol";
 
 /// @title RecurringGrantDrop Tests
 /// @author Worldcoin
@@ -22,6 +23,7 @@ contract RecurringGrantDropTest is PRBTest {
     address public manager;
     address public caller;
     address public holder;
+
     uint256 public startTime = 1690167600; // Monday, 24 July 2023 03:00:00
     uint256 public preGrant4_claimTime = 1699239600; // Monday, 23 October 2023 03:00:00
     uint256 public grant4_grant39_claimTime = 1722470400; // Thursday, 01 August 2024 00:00:00
@@ -44,11 +46,19 @@ contract RecurringGrantDropTest is PRBTest {
         user = address(0x3);
         holder = address(0x4);
 
+        MockAllowanceModule allowanceModule = new MockAllowanceModule(address(token), holder);
+
         proof = [0, 0, 0, 0, 0, 0, 0, 0];
 
         vm.prank(manager);
-        airdrop =
-            new RecurringGrantDrop(worldIDIdentityManagerRouterMock, groupId, token, holder, grant);
+        airdrop = new RecurringGrantDrop(
+            worldIDIdentityManagerRouterMock,
+            groupId,
+            token,
+            holder,
+            grant,
+            address(allowanceModule)
+        );
         vm.prank(manager);
 
         ///////////////////////////////////////////////////////////////////
@@ -69,6 +79,9 @@ contract RecurringGrantDropTest is PRBTest {
         // Approve spending from the airdrop contract
         vm.prank(holder);
         token.approve(address(airdrop), type(uint256).max);
+
+        vm.prank(holder);
+        token.approve(address(allowanceModule), type(uint256).max);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -325,3 +338,4 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(address(airdrop.grant()), address(grant));
     }
 }
+

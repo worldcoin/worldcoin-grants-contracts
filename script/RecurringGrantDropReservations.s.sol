@@ -40,12 +40,19 @@ contract DeployRecurringGrantDropReservations is Script {
 
     ERC20 public token = ERC20(erc20Address);
 
+    // Worldchain Address
+    address public allowanceModule = 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7;
+
+    // Optimism Address
+    // address public allowanceModule = 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7;
+
+
     function run() external {
         vm.startBroadcast(privateKey);
 
         grant = new WLDGrantReservations();
 
-        airdrop = new RecurringGrantDropReservations(worldIdRouter, groupId, token, holder, grant);
+        airdrop = new RecurringGrantDropReservations(worldIdRouter, groupId, token, holder, grant, allowanceModule);
 
         vm.stopBroadcast();
     }

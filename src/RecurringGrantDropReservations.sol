@@ -8,6 +8,8 @@ import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IGrantReservations} from "./IGrantReservations.sol";
 import {IWorldIDGroups} from "world-id-contracts/interfaces/IWorldIDGroups.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
+import {GnosisSafe} from "./IAllowanceModule.sol";
+import {AllowanceModule} from "./IAllowanceModule.sol";
 
 /// @title RecurringGrantDropReservations
 /// @author Worldcoin
@@ -29,10 +31,6 @@ contract RecurringGrantDropReservations is Ownable2Step {
     /// @notice The ERC20 token airdropped
     ERC20 public token;
 
-    /// @notice The address that holds the tokens that are being airdropped
-    /// @dev Make sure the holder has approved spending for this contract!
-    address public holder;
-
     /// @notice The grant instance used
     IGrantReservations public grant;
 
@@ -42,6 +40,12 @@ contract RecurringGrantDropReservations is Ownable2Step {
     /// @dev Allowed addresses to sign a reservation
     mapping(address => bool) internal allowedSigners;
 
+    /// @notice BVI Safe that grants allowances to this contract
+    GnosisSafe public holder;
+
+    /// @notice address of the Safe Allowance Module
+    AllowanceModule public allowanceModule;
+    
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  ERRORS                                ///
     //////////////////////////////////////////////////////////////////////////////
@@ -82,7 +86,8 @@ contract RecurringGrantDropReservations is Ownable2Step {
         uint256 _groupId,
         ERC20 _token,
         address _holder,
-        IGrantReservations _grant
+        IGrantReservations _grant,
+        address _allowanceModuleAddress
     );
 
     /// @notice Emitted when a grant is successfully claimed
@@ -132,20 +137,25 @@ contract RecurringGrantDropReservations is Ownable2Step {
         uint256 _groupId,
         ERC20 _token,
         address _holder,
-        IGrantReservations _grant
+        IGrantReservations _grant,
+        address _allowanceModuleAddress
     ) Ownable(msg.sender) {
         if (address(_worldIdRouter) == address(0)) revert InvalidConfiguration();
         if (address(_token) == address(0)) revert InvalidConfiguration();
         if (address(_holder) == address(0)) revert InvalidConfiguration();
         if (address(_grant) == address(0)) revert InvalidConfiguration();
+        if (address(_allowanceModuleAddress) == address(0)) revert InvalidConfiguration();
 
         worldIdRouter = _worldIdRouter;
         groupId = _groupId;
         token = _token;
-        holder = _holder;
+        holder = GnosisSafe(_holder);
         grant = _grant;
+        allowanceModule = AllowanceModule(_allowanceModuleAddress);
 
-        emit RecurringGrantDropInitialized(worldIdRouter, groupId, token, holder, grant);
+        emit RecurringGrantDropInitialized(
+            worldIdRouter, groupId, token, address(holder), grant, _allowanceModuleAddress
+        );
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -172,7 +182,9 @@ contract RecurringGrantDropReservations is Ownable2Step {
 
         nullifierHashes[nullifierHash] = true;
 
-        SafeERC20.safeTransferFrom(token, holder, receiver, grant.getAmount(grantId));
+        allowanceModule.executeAllowanceTransfer(
+            holder, address(token), payable(receiver), uint96(grant.getAmount(grantId))
+        );
 
         emit GrantClaimed(grantId, receiver);
     }
@@ -266,9 +278,9 @@ contract RecurringGrantDropReservations is Ownable2Step {
     /// @param _holder The new holder
     function setHolder(address _holder) external onlyOwner {
         if (address(_holder) == address(0)) revert InvalidConfiguration();
-        holder = _holder;
+        holder = GnosisSafe(_holder);
 
-        emit HolderUpdated(holder);
+        emit HolderUpdated(address(holder));
     }
 
     /// @notice Update the grant
