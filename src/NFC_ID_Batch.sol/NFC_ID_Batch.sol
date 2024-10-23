@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
-contract NFCID_Batch is Ownable2Step {
+contract NFC_ID_Batch is Ownable2Step {
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
     ////////////////////////////////////////////////////////////////
