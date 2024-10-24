@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
-contract NFC_ID_Batch is Ownable2Step {
+contract NFC_ID is Ownable2Step {
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
     ////////////////////////////////////////////////////////////////
@@ -12,11 +12,11 @@ contract NFC_ID_Batch is Ownable2Step {
     /// @notice Error that is thrown if the caller is not allowed to call the function
     error OnlyAllowedCaller();
 
-    /// @notice Error that is thrown if the input arrays have different lengths
-    error LengthMismatch();
-
     /// @notice Error that is thrown if a proposed configuration address is the zero address
     error ZeroAddress();
+
+    /// @notice Thrown when attempting to reuse a nullifier
+    error InvalidNullifier();
 
     ////////////////////////////////////////////////////////////////
     //                           EVENTS                           //
@@ -37,8 +37,8 @@ contract NFC_ID_Batch is Ownable2Step {
     /// @notice Event emitted when the Holder is set
     event HolderSet(address indexed holder);
 
-    /// @notice Event emitted when a batch has been processed
-    event BatchProcessed(uint256 batchSize, uint256 successfulExecutions);
+    /// @notice Event emitted when an NFCIDGrant has been claimed
+    event NFCIDGrantClaimed(address indexed receiver);
 
     ////////////////////////////////////////////////////////////////
     ///                      CONFIG STORAGE                      ///
@@ -83,38 +83,30 @@ contract NFC_ID_Batch is Ownable2Step {
     ///                        FUNCTIONS                         ///
     ////////////////////////////////////////////////////////////////
 
-    /// @notice Batch transfer WLD tokens to multiple addresses
-    /// @param _nullifierHashes array of nullifier hashes
-    /// @param _recipients array of recipient addresses
-    /// @param _amounts array of amounts to transfer
-    function batch(
-        uint256[] calldata _nullifierHashes,
-        address[] calldata _recipients,
-        uint256[] calldata _amounts
+    /// @notice Claim the NFC ID airdrop
+    /// @param _nullifierHash nullifierHash
+    /// @param _recipient recipient
+    /// @param _amount amount
+    function claim(
+        uint256 _nullifierHash,
+        address _recipient,
+        uint256 _amount
     ) external {
-        if (
-            !(_nullifierHashes.length == _recipients.length && _recipients.length == _amounts.length)
-        ) {
-            revert LengthMismatch();
-        }
-
         if (!allowedCallers[msg.sender]) {
             revert OnlyAllowedCaller();
         }
 
-        uint256 batchSize = _nullifierHashes.length;
-        uint256 successfulExecutions = 0;
-        for (uint256 i = 0; i < _recipients.length; i++) {
-            if(!nullifierHashes[_nullifierHashes[i]]) {
-                nullifierHashes[_nullifierHashes[i]] = true;
-                AllowanceModule(ALLOWANCE_MODULE).executeAllowanceTransfer(
-                    HOLDER, WLD_TOKEN, payable(_recipients[i]), uint96(_amounts[i])
-                );
-                successfulExecutions++;
-            }
+        if (nullifierHashes[_nullifierHash]) {
+            revert InvalidNullifier();
         }
 
-        emit BatchProcessed(batchSize, successfulExecutions);
+        nullifierHashes[_nullifierHash] = true;
+
+        AllowanceModule(ALLOWANCE_MODULE).executeAllowanceTransfer(
+            HOLDER, WLD_TOKEN, payable(_recipient), uint96(_amount)
+        );
+
+        emit NFCIDGrantClaimed(_recipient);
     }
 
     ////////////////////////////////////////////////////////////////

@@ -3,15 +3,15 @@ pragma solidity ^0.8.19;
 import {Script} from "forge-std/Script.sol";
 
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {NFC_ID_Batch} from "src/NFC_ID_Batch.sol";
+import {NFC_ID} from "src/NFC_ID/NFC_ID.sol";
 
-/// @title Deployment script for NFC_ID_Batch
+/// @title Deployment script for NFC_ID
 /// @author Worldcoin
-/// @notice Deploys the NFC_ID_Batch contract with the correct parameters
+/// @notice Deploys the NFC_ID contract with the correct parameters
 /// @dev You need to have the necessary values in scripts/.deploy-config.json in order for it to work.
-/// Can be run by executing `make deploy-nfc-id-batch`
+/// Can be run by executing `make deploy-nfc-id`
 contract DeployRecurringGrantDrop is Script {
-    NFC_ID_Batch public nfcIdBatch;
+    NFC_ID public ncfId;
 
     ///////////////////////////////////////////////////////////////////
     ///                            CONFIG                           ///
@@ -36,8 +36,8 @@ contract DeployRecurringGrantDrop is Script {
     function run() external {
         vm.startBroadcast(privateKey);
 
-        nfcIdBatch =
-            new NFC_ID_Batch(allowanceModule, erc20Address, holder);
+        ncfId =
+            new NFC_ID(allowanceModule, erc20Address, holder);
 
         vm.stopBroadcast();
     }

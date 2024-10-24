@@ -333,7 +333,7 @@ async function deployWLDGrantPreGrant4(config) {
   }
 }
 
-async function deployNFC_ID_Batch(config) {
+async function deployNFC_ID(config) {
   dotenv.config();
 
   await getPrivateKey(config);
@@ -342,18 +342,18 @@ async function deployNFC_ID_Batch(config) {
   await getHolderAddress(config);
   await getErc20Address(config);
 
-  const spinner = ora(`Deploying NFC_ID_Batch contract...`).start();
+  const spinner = ora(`Deploying NFC_ID contract...`).start();
 
   try {
     const data = execSync(
-      `forge script script/NFC_ID_Batch.s.sol:NFC_ID_Batch --fork-url ${config.ethereumRpcUrl} \
+      `forge script script/NFC_ID.s.sol:NFC_ID --fork-url ${config.ethereumRpcUrl} \
       --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
     );
     console.log(data.toString());
-    spinner.succeed('Deployed NFC_ID_Batch contract successfully!');
+    spinner.succeed('Deployed NFC_ID contract successfully!');
   } catch (err) {
     console.error(err);
-    spinner.fail('Deployment of NFC_ID_Batch has failed.');
+    spinner.fail('Deployment of NFC_ID has failed.');
   }
 }
 
@@ -510,13 +510,13 @@ async function main() {
     });
   
     program
-    .name('deploy-nfc-id-batch')
-    .command('deploy-nfc-id-batch')
-    .description('Deploys the NFC_ID_Batch contract')
+    .name('deploy-nfc-id')
+    .command('deploy-nfc-id')
+    .description('Deploys the NFC_ID contract')
     .action(async () => {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
-      await deployNFC_ID_Batch(config);
+      await deployNFC_ID(config);
       await saveConfiguration(config);
     });
 
