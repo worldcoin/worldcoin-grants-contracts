@@ -32,15 +32,23 @@ contract GatedMulticall3 is Ownable2Step {
         bytes returnData;
     }
 
-    // configuration
+    // events
 
-    /// @notice authorizedCallers
-    mapping(address => bool) public authorizedCallers;
+    /// @notice event emitted when an authorized caller is added
+    event AuthorizedCallerAdded(address indexed caller);
+
+    /// @notice event emitted when an authorized caller is removed
+    event AuthorizedCallerRemoved(address indexed caller);
 
     // errors
 
     /// @notice error if the caller is not authorized
     error OnlyAuthorizedCaller();
+
+    // configuration
+
+    /// @notice authorizedCallers
+    mapping(address => bool) public authorizedCallers;
 
     // constructor
 
@@ -48,12 +56,14 @@ contract GatedMulticall3 is Ownable2Step {
 
     // Admin functions
 
-    function setAuthorizedCaller(address _caller, bool _allowed) public onlyOwner {
-        authorizedCallers[_caller] = _allowed;
+    function addAuthorizedCaller(address _caller) public onlyOwner {
+        authorizedCallers[_caller] = true;
+        emit AuthorizedCallerAdded(_caller);
     }
 
     function removeAuthorizedCaller(address _caller) public onlyOwner {
         delete authorizedCallers[_caller];
+        emit AuthorizedCallerRemoved(_caller);
     }
 
     // Multicall functions
