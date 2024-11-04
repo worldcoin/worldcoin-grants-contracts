@@ -361,6 +361,8 @@ async function deployGatedMulticall3(config) {
   dotenv.config();
 
   await getPrivateKey(config);
+  await getEthereumRpcUrl(config);
+  await getEtherscanApiKey(config);
 
   const spinner = ora(`Deploying GatedMulticall3 contract...`).start();
 
