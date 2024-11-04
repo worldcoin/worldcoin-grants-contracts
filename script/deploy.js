@@ -357,23 +357,23 @@ async function deployNFC_ID(config) {
   }
 }
 
-async function deployGatedMulticall(config) {
+async function deployGatedMulticall3(config) {
   dotenv.config();
 
   await getPrivateKey(config);
 
-  const spinner = ora(`Deploying GatedMulticall contract...`).start();
+  const spinner = ora(`Deploying GatedMulticall3 contract...`).start();
 
   try {
     const data = execSync(
-      `forge script script/GatedMulticall.s.sol:GatedMulticall --fork-url ${config.ethereumRpcUrl} \
+      `forge script script/GatedMulticall3.s.sol:DeployGatedMulticall3 --fork-url ${config.ethereumRpcUrl} \
       --broadcast --verify -vvvv`
     );
     console.log(data.toString());
-    spinner.succeed('Deployed GatedMulticall contract successfully!');
+    spinner.succeed('Deployed GatedMulticall3 contract successfully!');
   } catch (err) {
     console.error(err);
-    spinner.fail('Deployment of GatedMulticall has failed.');
+    spinner.fail('Deployment of GatedMulticall3 has failed.');
   }
 }
 
@@ -541,13 +541,13 @@ async function main() {
     });
 
   program
-    .name('deploy-gated-multicall')
-    .command('deploy-gated-multicall')
-    .description('Deploys the GatedMulticall contract')
+    .name('deploy-gated-multicall3')
+    .command('deploy-gated-multicall3')
+    .description('Deploys the GatedMulticall3 contract')
     .action(async () => {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
-      await deployGatedMulticall(config);
+      await deployGatedMulticall3(config);
       await saveConfiguration(config);
     });
 

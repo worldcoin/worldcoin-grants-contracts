@@ -34,7 +34,7 @@ deploy-wld-grant-pre-grant-4-new:; node --no-warnings script/deploy.js deploy-wl
 
 deploy-nfc-id:; node --no-warnings script/deploy.js deploy-nfc-id
 
-deploy-gated-multicall:; node --no-warnings script/deploy.js deploy-gated-multicall
+deploy-gated-multicall3:; node --no-warnings script/deploy.js deploy-gated-multicall3
 
 # ===== Utility Rules =================================================================================================
 

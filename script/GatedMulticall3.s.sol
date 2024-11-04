@@ -10,7 +10,7 @@ import {GatedMulticall3} from "src/GatedMulticall/GatedMulticall.sol";
 /// @notice Deploys the GatedMulticall contract with the correct parameters
 /// @dev You need to have the necessary values in scripts/.deploy-config.json in order for it to work.
 /// Can be run by executing `make deploy-gated-multicall`
-contract GatedMulticall is Script {
+contract DeployGatedMulticall3 is Script {
     GatedMulticall3 public gatedMulticall;
 
     ///////////////////////////////////////////////////////////////////
