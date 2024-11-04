@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 import {Script} from "forge-std/Script.sol";
 
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {GatedMulticall3} from "src/GatedMulticall/GatedMulticall.sol";
+import {GatedMulticall3} from "src/GatedMulticall3/GatedMulticall3.sol";
 
 /// @title Deployment script for GatedMulticall
 /// @author Worldcoin
