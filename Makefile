@@ -32,6 +32,10 @@ add-allowed-nullifier-hash-blocker:; node --no-warnings script/deploy.js add-all
 
 deploy-wld-grant-pre-grant-4-new:; node --no-warnings script/deploy.js deploy-wld-grant-pre-grant-4-new
 
+deploy-nfc-id:; node --no-warnings script/deploy.js deploy-nfc-id
+
+deploy-gated-multicall:; node --no-warnings script/deploy.js deploy-gated-multicall
+
 # ===== Utility Rules =================================================================================================
 
 # Format the solidity code.

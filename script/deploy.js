@@ -357,6 +357,26 @@ async function deployNFC_ID(config) {
   }
 }
 
+async function deployGatedMulticall(config) {
+  dotenv.config();
+
+  await getPrivateKey(config);
+
+  const spinner = ora(`Deploying GatedMulticall contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/GatedMulticall.s.sol:GatedMulticall --fork-url ${config.ethereumRpcUrl} \
+      --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed GatedMulticall contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of GatedMulticall has failed.');
+  }
+}
+
 async function setAllowanceMax(config) {
   await getErc20Address(config);
   await getSpenderAddress(config);
@@ -517,6 +537,17 @@ async function main() {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
       await deployNFC_ID(config);
+      await saveConfiguration(config);
+    });
+
+  program
+    .name('deploy-gated-multicall')
+    .command('deploy-gated-multicall')
+    .description('Deploys the GatedMulticall contract')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await deployGatedMulticall(config);
       await saveConfiguration(config);
     });
 
