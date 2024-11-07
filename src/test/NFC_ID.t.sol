@@ -6,7 +6,7 @@ import {NFC_ID} from "../NFC_ID/NFC_ID.sol";
 import {MockAllowanceModule} from "./mock/MockAllowanceModule.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
 
-/// @title WLDGrantReservationsTest
+/// @title NFC_IDTest
 /// @author Worldcoin
 contract NFC_IDTest is PRBTest {
     NFC_ID internal nfcId;
