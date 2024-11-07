@@ -10,7 +10,7 @@ import {NFC_ID} from "src/NFC_ID/NFC_ID.sol";
 /// @notice Deploys the NFC_ID contract with the correct parameters
 /// @dev You need to have the necessary values in scripts/.deploy-config.json in order for it to work.
 /// Can be run by executing `make deploy-nfc-id`
-contract DeployRecurringGrantDrop is Script {
+contract DeployNFC_ID is Script {
     NFC_ID public ncfId;
 
     ///////////////////////////////////////////////////////////////////
