@@ -18,6 +18,9 @@ contract NFC_ID is Ownable2Step {
     /// @notice Thrown when attempting to reuse a nullifier
     error InvalidNullifier();
 
+    /// @notice Thrown when the amount is higher than the max uint96 value
+    error AmountHigherThanU96Max();
+
     ////////////////////////////////////////////////////////////////
     //                           EVENTS                           //
     ////////////////////////////////////////////////////////////////
@@ -39,6 +42,9 @@ contract NFC_ID is Ownable2Step {
 
     /// @notice Event emitted when an NFCIDGrant has been claimed
     event NFCIDGrantClaimed(address indexed receiver);
+
+    /// @notice Event emitted when the contract is initialized
+    event ContractInitialized(address indexed allowanceModule, address indexed wldToken, address indexed holder);
 
     ////////////////////////////////////////////////////////////////
     ///                      CONFIG STORAGE                      ///
@@ -77,6 +83,8 @@ contract NFC_ID is Ownable2Step {
         ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
         WLD_TOKEN = _wldToken;
         HOLDER = GnosisSafe(_holder);
+
+        emit ContractInitialized(_allowanceModuleAddress, _wldToken, _holder);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -98,6 +106,10 @@ contract NFC_ID is Ownable2Step {
 
         if (nullifierHashes[_nullifierHash]) {
             revert InvalidNullifier();
+        }
+
+        if (_amount > type(uint96).max) {
+            revert AmountHigherThanU96Max();
         }
 
         nullifierHashes[_nullifierHash] = true;

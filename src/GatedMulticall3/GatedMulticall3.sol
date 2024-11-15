@@ -45,6 +45,9 @@ contract GatedMulticall3 is Ownable2Step {
     /// @notice error if the caller is not authorized
     error OnlyAuthorizedCaller();
 
+    /// @notice error if the caller is the zero address
+    error InvalidCaller();
+
     // configuration
 
     /// @notice authorizedCallers
@@ -57,6 +60,7 @@ contract GatedMulticall3 is Ownable2Step {
     // Admin functions
 
     function addAuthorizedCaller(address _caller) public onlyOwner {
+        if (_caller == address(0)) revert InvalidCaller();
         authorizedCallers[_caller] = true;
         emit AuthorizedCallerAdded(_caller);
     }
