@@ -333,6 +333,52 @@ async function deployWLDGrantPreGrant4(config) {
   }
 }
 
+async function deployNFC_ID(config) {
+  dotenv.config();
+
+  await getPrivateKey(config);
+  await getEthereumRpcUrl(config);
+  await getEtherscanApiKey(config);
+  await getHolderAddress(config);
+  await getErc20Address(config);
+
+  const spinner = ora(`Deploying NFC_ID contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/NFC_ID.s.sol:NFC_ID --fork-url ${config.ethereumRpcUrl} \
+      --etherscan-api-key ${config.ethereumEtherscanApiKey} --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed NFC_ID contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of NFC_ID has failed.');
+  }
+}
+
+async function deployGatedMulticall3(config) {
+  dotenv.config();
+
+  await getPrivateKey(config);
+  await getEthereumRpcUrl(config);
+  await getEtherscanApiKey(config);
+
+  const spinner = ora(`Deploying GatedMulticall3 contract...`).start();
+
+  try {
+    const data = execSync(
+      `forge script script/GatedMulticall3.s.sol:DeployGatedMulticall3 --fork-url ${config.ethereumRpcUrl} \
+      --broadcast --verify -vvvv`
+    );
+    console.log(data.toString());
+    spinner.succeed('Deployed GatedMulticall3 contract successfully!');
+  } catch (err) {
+    console.error(err);
+    spinner.fail('Deployment of GatedMulticall3 has failed.');
+  }
+}
+
 async function setAllowanceMax(config) {
   await getErc20Address(config);
   await getSpenderAddress(config);
@@ -482,6 +528,28 @@ async function main() {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
       await deployWLDGrantPreGrant4(config);
+      await saveConfiguration(config);
+    });
+  
+    program
+    .name('deploy-nfc-id')
+    .command('deploy-nfc-id')
+    .description('Deploys the NFC_ID contract')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await deployNFC_ID(config);
+      await saveConfiguration(config);
+    });
+
+  program
+    .name('deploy-gated-multicall3')
+    .command('deploy-gated-multicall3')
+    .description('Deploys the GatedMulticall3 contract')
+    .action(async () => {
+      const options = program.opts();
+      let config = await loadConfiguration(options.config);
+      await deployGatedMulticall3(config);
       await saveConfiguration(config);
     });
 
