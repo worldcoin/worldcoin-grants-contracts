@@ -18,6 +18,9 @@ contract FirstClaim is Ownable2Step {
     /// @notice Error that is thrown if the grant amount is too large
     error GrantAmountTooLarge();
 
+    /// @notice Error that is thrown if the owner tries to renounce ownership
+    error CannotRenounceOwnership();
+
     ////////////////////////////////////////////////////////////////
     //                           EVENTS                           //
     ////////////////////////////////////////////////////////////////
@@ -173,6 +176,12 @@ contract FirstClaim is Ownable2Step {
         }
         delete allowedCallers[_caller];
         emit CallerRemoved(_caller);
+    }
+
+    /// @notice Prevents the owner from renouncing ownership
+    /// @dev onlyOwner
+    function renounceOwnership() public view override onlyOwner {
+        revert CannotRenounceOwnership();
     }
 }
 
