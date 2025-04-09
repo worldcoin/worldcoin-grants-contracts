@@ -123,7 +123,7 @@ contract FirstClaim is Ownable2Step {
         uint96(amount - currentGrantAmount)
       );
 
-       emit FirstClaimClaimed(grantId, receiver, amount, currentGrantAmount);
+      emit FirstClaimClaimed(grantId, receiver, amount, currentGrantAmount);
     }
 
     ////////////////////////////////////////////////////////////////
