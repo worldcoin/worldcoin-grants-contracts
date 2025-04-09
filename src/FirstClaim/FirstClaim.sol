@@ -44,7 +44,7 @@ contract FirstClaim is Ownable2Step {
     event RecurringGrantDropSet(address indexed recurringGrantDrop);
 
     /// @notice Event emitted when a first claim has been made
-    event FirstClaimClaimed(uint256 grantId, address indexed receiver, uint256 amount);
+    event FirstClaimClaimed(uint256 grantId, address indexed receiver, uint256 amount, uint256 currentGrantAmount);
 
     ////////////////////////////////////////////////////////////////
     ///                      CONFIG STORAGE                      ///
@@ -62,7 +62,7 @@ contract FirstClaim is Ownable2Step {
     /// @notice Recurring Grant Drop contract
     IRecurringGrantDrop public RECURRING_GRANT_DROP;
 
-    /// @notice addresses that can call the batch function
+    /// @notice addresses that can call the claim function
     mapping(address => bool) public allowedCallers;
 
     ////////////////////////////////////////////////////////////////
@@ -110,12 +110,12 @@ contract FirstClaim is Ownable2Step {
         revert OnlyAllowedCaller();
       }
 
-      RECURRING_GRANT_DROP.claim(grantId, receiver, root, nullifierHash, proof);
       uint256 currentGrantAmount = RECURRING_GRANT_DROP.grant().getAmount(grantId);
       if (currentGrantAmount >= amount) {
         revert GrantAmountTooLarge();
       }
 
+      RECURRING_GRANT_DROP.claim(grantId, receiver, root, nullifierHash, proof);
       ALLOWANCE_MODULE.executeAllowanceTransfer(
         HOLDER,
         WLD_TOKEN,
@@ -123,7 +123,7 @@ contract FirstClaim is Ownable2Step {
         uint96(amount - currentGrantAmount)
       );
 
-        emit FirstClaimClaimed(grantId, receiver, amount);
+       emit FirstClaimClaimed(grantId, receiver, amount, currentGrantAmount);
     }
 
     ////////////////////////////////////////////////////////////////
