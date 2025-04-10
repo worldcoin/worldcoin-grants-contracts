@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Ownable2Step} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import {IGrant} from "../IGrant.sol";
 
 contract FirstClaim is Ownable2Step {
     ////////////////////////////////////////////////////////////////
@@ -196,10 +197,6 @@ interface IRecurringGrantDrop {
     ) external;
 
     function grant() external view returns (IGrant);
-}
-
-interface IGrant {
-  function getAmount(uint256 grantId) external view returns (uint256);
 }
 
 interface GnosisSafe {}
