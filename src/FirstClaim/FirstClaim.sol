@@ -19,6 +19,9 @@ contract FirstClaim is Ownable2Step {
     /// @notice Error that is thrown if the grant amount is too large
     error GrantAmountTooLarge();
 
+    /// @notice Error that is thrown if the max claim amount is exceeded
+    error MaxClaimAmountExceeded();
+
     /// @notice Error that is thrown if the owner tries to renounce ownership
     error CannotRenounceOwnership();
 
@@ -44,6 +47,9 @@ contract FirstClaim is Ownable2Step {
     /// @notice Event emitted when the RecurringGrantDrop is set
     event RecurringGrantDropSet(address indexed recurringGrantDrop);
 
+    /// @notice Event emitted when the max claim amount is set
+    event MaxClaimAmountSet(uint256 maxClaimAmount);
+
     /// @notice Event emitted when a first claim has been made
     event FirstClaimClaimed(uint256 grantId, address indexed receiver, uint256 amount, uint256 currentGrantAmount);
 
@@ -57,14 +63,17 @@ contract FirstClaim is Ownable2Step {
     /// @notice Worldcoin token address
     address public token;
 
-    /// @notice BVI Safe that grants allowances to this contract
-    GnosisSafe public holder;
+    /// @notice address that grants allowances to this contract
+    address public holder;
 
     /// @notice Recurring Grant Drop contract
     IRecurringGrantDrop public recurringGrantDrop;
 
     /// @notice addresses that can call the claim function
     mapping(address => bool) public allowedCallers;
+
+    /// @notice maximum claim amount safeguard
+    uint256 public maxClaimAmount;
 
     ////////////////////////////////////////////////////////////////
     ///                       CONSTRUCTOR                        ///
@@ -74,7 +83,8 @@ contract FirstClaim is Ownable2Step {
         address _allowanceModuleAddress,
         address _wldToken,
         address _holder,
-        address _recurringGrantDrop
+        address _recurringGrantDrop,
+        uint256 _maxClaimAmount
     ) Ownable(msg.sender) {
         if (
             _allowanceModuleAddress == address(0) || _wldToken == address(0)
@@ -84,8 +94,21 @@ contract FirstClaim is Ownable2Step {
         }
         allowanceModule = AllowanceModule(_allowanceModuleAddress);
         token = _wldToken;
-        holder = GnosisSafe(_holder);
+        holder = _holder;
         recurringGrantDrop = IRecurringGrantDrop(_recurringGrantDrop);
+        maxClaimAmount = _maxClaimAmount;
+    }
+
+    ////////////////////////////////////////////////////////////////
+    ///                        MODIFIERS                         ///
+    ////////////////////////////////////////////////////////////////
+
+    /// @notice Modifier that checks if the caller is allowed to call the function
+    modifier onlyAllowedCaller() {
+        if (!allowedCallers[msg.sender]) {
+            revert OnlyAllowedCaller();
+        }
+        _;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -106,9 +129,10 @@ contract FirstClaim is Ownable2Step {
         uint256 nullifierHash,
         uint256[8] calldata proof,
         uint256 amount
-    ) external {
-      if (!allowedCallers[msg.sender]) {
-        revert OnlyAllowedCaller();
+    ) external onlyAllowedCaller {
+
+      if (amount > maxClaimAmount) {
+        revert MaxClaimAmountExceeded();
       }
 
       uint256 currentGrantAmount = recurringGrantDrop.grant().getAmount(grantId);
@@ -151,7 +175,7 @@ contract FirstClaim is Ownable2Step {
         if (_holder == address(0)) {
             revert ZeroAddress();
         }
-        holder = GnosisSafe(_holder);
+        holder = _holder;
         emit HolderSet(_holder);
     }
 
@@ -179,6 +203,11 @@ contract FirstClaim is Ownable2Step {
         emit CallerRemoved(_caller);
     }
 
+    function setMaxClaimAmount(uint256 _maxClaimAmount) external onlyOwner {
+        maxClaimAmount = _maxClaimAmount;
+        emit MaxClaimAmountSet(_maxClaimAmount);
+    }
+
     /// @notice Prevents the owner from renouncing ownership
     /// @dev onlyOwner
     function renounceOwnership() public view override onlyOwner {
@@ -199,14 +228,12 @@ interface IRecurringGrantDrop {
     function grant() external view returns (IGrant);
 }
 
-interface GnosisSafe {}
-
 // an interface for the AllowanceModule contract deployed at these addresses
 // optimism: 0x948BDE4d8670500b0F62cF5c745C82ABe7c81A65
 // worldchain: 0xa9bcF56d9FCc0178414EF27a3d893C9469e437B7
 interface AllowanceModule {
     function executeAllowanceTransfer(
-        GnosisSafe safe,
+        address safe,
         address token,
         address payable to,
         uint96 amount
