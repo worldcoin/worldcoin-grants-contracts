@@ -52,16 +52,16 @@ contract FirstClaim is Ownable2Step {
     ////////////////////////////////////////////////////////////////
 
     /// @notice address of the Safe Allowance Module
-    AllowanceModule public ALLOWANCE_MODULE;
+    AllowanceModule public allowanceModule;
 
     /// @notice Worldcoin token address
-    address public WLD_TOKEN;
+    address public token;
 
     /// @notice BVI Safe that grants allowances to this contract
-    GnosisSafe public HOLDER;
+    GnosisSafe public holder;
 
     /// @notice Recurring Grant Drop contract
-    IRecurringGrantDrop public RECURRING_GRANT_DROP;
+    IRecurringGrantDrop public recurringGrantDrop;
 
     /// @notice addresses that can call the claim function
     mapping(address => bool) public allowedCallers;
@@ -82,10 +82,10 @@ contract FirstClaim is Ownable2Step {
         ) {
             revert ZeroAddress();
         }
-        ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
-        WLD_TOKEN = _wldToken;
-        HOLDER = GnosisSafe(_holder);
-        RECURRING_GRANT_DROP = IRecurringGrantDrop(_recurringGrantDrop);
+        allowanceModule = AllowanceModule(_allowanceModuleAddress);
+        token = _wldToken;
+        holder = GnosisSafe(_holder);
+        recurringGrantDrop = IRecurringGrantDrop(_recurringGrantDrop);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -111,15 +111,15 @@ contract FirstClaim is Ownable2Step {
         revert OnlyAllowedCaller();
       }
 
-      uint256 currentGrantAmount = RECURRING_GRANT_DROP.grant().getAmount(grantId);
+      uint256 currentGrantAmount = recurringGrantDrop.grant().getAmount(grantId);
       if (currentGrantAmount >= amount) {
         revert GrantAmountTooLarge();
       }
 
-      RECURRING_GRANT_DROP.claim(grantId, receiver, root, nullifierHash, proof);
-      ALLOWANCE_MODULE.executeAllowanceTransfer(
-        HOLDER,
-        WLD_TOKEN,
+      recurringGrantDrop.claim(grantId, receiver, root, nullifierHash, proof);
+      allowanceModule.executeAllowanceTransfer(
+        holder,
+        token,
         payable(receiver),
         uint96(amount - currentGrantAmount)
       );
@@ -135,7 +135,7 @@ contract FirstClaim is Ownable2Step {
         if (_allowanceModuleAddress == address(0)) {
             revert ZeroAddress();
         }
-        ALLOWANCE_MODULE = AllowanceModule(_allowanceModuleAddress);
+        allowanceModule = AllowanceModule(_allowanceModuleAddress);
         emit AllowanceModuleSet(_allowanceModuleAddress);
     }
 
@@ -143,7 +143,7 @@ contract FirstClaim is Ownable2Step {
         if (_wldToken == address(0)) {
             revert ZeroAddress();
         }
-        WLD_TOKEN = _wldToken;
+        token = _wldToken;
         emit WldTokenSet(_wldToken);
     }
 
@@ -151,7 +151,7 @@ contract FirstClaim is Ownable2Step {
         if (_holder == address(0)) {
             revert ZeroAddress();
         }
-        HOLDER = GnosisSafe(_holder);
+        holder = GnosisSafe(_holder);
         emit HolderSet(_holder);
     }
 
@@ -159,7 +159,7 @@ contract FirstClaim is Ownable2Step {
         if (address(_recurringGrantDrop) == address(0)) {
             revert ZeroAddress();
         }
-        RECURRING_GRANT_DROP = _recurringGrantDrop;
+        recurringGrantDrop = _recurringGrantDrop;
         emit RecurringGrantDropSet(address(_recurringGrantDrop));
     }
 
