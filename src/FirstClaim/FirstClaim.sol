@@ -51,7 +51,9 @@ contract FirstClaim is Ownable2Step {
     event MaxClaimAmountSet(uint256 maxClaimAmount);
 
     /// @notice Event emitted when a first claim has been made
-    event FirstClaimClaimed(uint256 grantId, address indexed receiver, uint256 amount, uint256 currentGrantAmount);
+    event FirstClaimClaimed(
+        uint256 grantId, address indexed receiver, uint256 amount, uint256 currentGrantAmount
+    );
 
     ////////////////////////////////////////////////////////////////
     ///                      CONFIG STORAGE                      ///
@@ -130,25 +132,21 @@ contract FirstClaim is Ownable2Step {
         uint256[8] calldata proof,
         uint256 amount
     ) external onlyAllowedCaller {
+        if (amount > maxClaimAmount) {
+            revert MaxClaimAmountExceeded();
+        }
 
-      if (amount > maxClaimAmount) {
-        revert MaxClaimAmountExceeded();
-      }
+        uint256 currentGrantAmount = recurringGrantDrop.grant().getAmount(grantId);
+        if (currentGrantAmount >= amount) {
+            revert GrantAmountTooLarge();
+        }
 
-      uint256 currentGrantAmount = recurringGrantDrop.grant().getAmount(grantId);
-      if (currentGrantAmount >= amount) {
-        revert GrantAmountTooLarge();
-      }
+        recurringGrantDrop.claim(grantId, receiver, root, nullifierHash, proof);
+        allowanceModule.executeAllowanceTransfer(
+            holder, token, payable(receiver), uint96(amount - currentGrantAmount)
+        );
 
-      recurringGrantDrop.claim(grantId, receiver, root, nullifierHash, proof);
-      allowanceModule.executeAllowanceTransfer(
-        holder,
-        token,
-        payable(receiver),
-        uint96(amount - currentGrantAmount)
-      );
-
-      emit FirstClaimClaimed(grantId, receiver, amount, currentGrantAmount);
+        emit FirstClaimClaimed(grantId, receiver, amount, currentGrantAmount);
     }
 
     ////////////////////////////////////////////////////////////////
