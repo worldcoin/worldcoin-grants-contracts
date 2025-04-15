@@ -37,9 +37,6 @@ contract RecurringGrantDrop is Ownable2Step {
     /// @dev Whether a nullifier hash has been used already. Used to prevent double-signaling
     mapping(uint256 => bool) public nullifierHashes;
 
-    /// @dev Allowed addresses to block a nullifierHash
-    mapping(address => bool) internal allowedNullifierHashBlockers;
-
     /// @notice BVI Safe that grants allowances to this contract
     GnosisSafe public holder;
 
@@ -61,15 +58,6 @@ contract RecurringGrantDrop is Ownable2Step {
 
     /// @notice Emmitted in revert if the owner attempts to resign ownership.
     error CannotRenounceOwnership();
-
-    /// @notice Thrown when attempting to block a nullifier hash that has already been blocked
-    error NullifierHashAlreadyBlocked();
-
-    /// @notice Thrown when attempting to add an invalid allowed recipient blocker
-    error InvalidAllowedNullifierHashBlocker();
-
-    /// @notice Thrown when attempting to sign with an unauthorized nullifier hash blocker
-    error UnauthorizedNullifierHashBlocker();
 
     ///////////////////////////////////////////////////////////////////////////////
     ///                                  EVENTS                                ///
@@ -115,15 +103,6 @@ contract RecurringGrantDrop is Ownable2Step {
     /// @param grant The new grant instance
     event GrantUpdated(IGrant grant);
 
-    /// @notice Emitted when an allowed nullifier hash blocker is added
-    event AllowedNullifierHashBlockerAdded(address signer);
-
-    /// @notice Emitted when an allowed nullifier hash blocker is removed
-    event AllowedNullifierHashBlockerRemoved(address signer);
-
-    /// @notice Emitted when a nullifier hash is blocked
-    event NullifierHashBlocked(uint256 nullifierHash);
-
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONSTRUCTOR                              ///
     //////////////////////////////////////////////////////////////////////////////
@@ -163,15 +142,6 @@ contract RecurringGrantDrop is Ownable2Step {
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CLAIM LOGIC                               ///
     ///////////////////////////////////////////////////////////////////////////////
-
-    /// @notice Block a nullifier hash from being used
-    /// @param nullifierHash The nullifier hash to block
-    function setNullifierHash(uint256 nullifierHash) external {
-        if (!allowedNullifierHashBlockers[msg.sender]) revert UnauthorizedNullifierHashBlocker();
-        if (nullifierHashes[nullifierHash]) revert NullifierHashAlreadyBlocked();
-        nullifierHashes[nullifierHash] = true;
-        emit NullifierHashBlocked(nullifierHash);
-    }
 
     /// @notice Claim the airdrop
     /// @param grantId The grant ID to claim
@@ -230,24 +200,6 @@ contract RecurringGrantDrop is Ownable2Step {
     ///////////////////////////////////////////////////////////////////////////////
     ///                               CONFIG LOGIC                             ///
     //////////////////////////////////////////////////////////////////////////////
-
-    /// @notice Add a blocker to the list of allowed nullifier hash blockers
-    /// @param _signer The address to add
-    function addAllowedNullifierHashBlocker(address _signer) external onlyOwner {
-        if (_signer == address(0)) revert InvalidAllowedNullifierHashBlocker();
-        allowedNullifierHashBlockers[_signer] = true;
-
-        emit AllowedNullifierHashBlockerAdded(_signer);
-    }
-
-    /// @notice Remove a blocker from the list of allowed nullifier hash blockers
-    /// @param _signer The address to remove
-    function removeAllowedNullifierHashBlocker(address _signer) external onlyOwner {
-        if (_signer == address(0)) revert InvalidAllowedNullifierHashBlocker();
-        allowedNullifierHashBlockers[_signer] = false;
-
-        emit AllowedNullifierHashBlockerRemoved(_signer);
-    }
 
     /// @notice Update the worldIdRouter
     /// @param _worldIdRouter The new worldIdRouter
