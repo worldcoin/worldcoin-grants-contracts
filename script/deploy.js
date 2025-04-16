@@ -32,7 +32,7 @@ async function loadConfiguration(useConfig) {
   if (answer === undefined) {
     answer = true;
   }
-  if (answer !== "n" && answer !== "N") {
+  if (answer !== 'n' && answer !== 'N') {
     if (!fs.existsSync(CONFIG_FILENAME)) {
       spinner.warn('Configuration load requested but no configuration available: continuing');
       return {};
@@ -67,7 +67,7 @@ async function saveConfiguration(config) {
     }
   })();
 
-  const data = JSON.stringify({ ...oldData, ...config }, null, "\t");
+  const data = JSON.stringify({ ...oldData, ...config }, null, '\t');
   fs.writeFileSync(CONFIG_FILENAME, data);
 }
 
@@ -76,7 +76,7 @@ async function isStaging(config) {
     config.isStaging = process.env.STAGING;
   }
   if (config.isStaging === undefined) {
-    config.staging = await ask('Is staging? (y/n) ') === 'y';
+    config.staging = (await ask('Is staging? (y/n) ')) === 'y';
   }
 }
 
@@ -148,7 +148,9 @@ async function getAllowedNullifierHashBlocker(config) {
     config.allowedNullifierHashBlocker = process.env.ALLOWED_NULLIFIER_HASH_BLOCKER;
   }
   if (!config.allowedNullifierHashBlocker) {
-    config.allowedNullifierHashBlocker = await ask('Enter the address of the allowed nullifier hash blocker: ');
+    config.allowedNullifierHashBlocker = await ask(
+      'Enter the address of the allowed nullifier hash blocker: '
+    );
   }
 }
 
@@ -445,7 +447,9 @@ async function addAllowedNullifierHashBlocker(config) {
     spinner.succeed(`Allowed nullifier hash blocker set for ${config.recurringGrantDropAddress}!`);
   } catch (err) {
     console.error(err);
-    spinner.fail(`Adding allowed nullifier hash blocker for ${config.recurringGrantDropAddress} failed.`);
+    spinner.fail(
+      `Adding allowed nullifier hash blocker for ${config.recurringGrantDropAddress} failed.`
+    );
   }
 }
 
@@ -471,11 +475,11 @@ async function main() {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
       delete config.staging; // allows get asked for this one
-      await deployAirdropReservations(config);
+      await deployAirdrop(config);
       await saveConfiguration(config);
     });
 
-    program
+  program
     .name('deploy-airdrop-reservations')
     .command('deploy-airdrop-reservations')
     .description('Interactively deploys the RecurringGrantDropReservations contracts.')
@@ -483,7 +487,7 @@ async function main() {
       const options = program.opts();
       let config = await loadConfiguration(options.config);
       delete config.staging; // allows get asked for this one
-      await deployAirdrop(config);
+      await deployAirdropReservations(config);
       await saveConfiguration(config);
     });
 
@@ -510,17 +514,6 @@ async function main() {
     });
 
   program
-    .name('add-allowed-nullifier-hash-blocker')
-    .command('add-allowed-nullifier-hash-blocker')
-    .description('Adds an allowed nullifier hash blocker to the RecurringGrantDrop contract.')
-    .action(async () => {
-      const options = program.opts();
-      let config = await loadConfiguration(options.config);
-      await addAllowedNullifierHashBlocker(config);
-      await saveConfiguration(config);
-    });
-
-  program
     .name('deploy-wld-grant-pre-grant-4-new')
     .command('deploy-wld-grant-pre-grant-4-new')
     .description('Deploys the WLDGrantPreGrant4_new contract')
@@ -530,8 +523,8 @@ async function main() {
       await deployWLDGrantPreGrant4(config);
       await saveConfiguration(config);
     });
-  
-    program
+
+  program
     .name('deploy-nfc-id')
     .command('deploy-nfc-id')
     .description('Deploys the NFC_ID contract')

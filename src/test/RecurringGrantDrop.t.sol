@@ -269,51 +269,6 @@ contract RecurringGrantDropTest is PRBTest {
     ///                       Config tests                       ///
     ////////////////////////////////////////////////////////////////
 
-    /// @notice Tests that AddNullifierHashBlocker can only be called by the manager
-    function testFuzz_CannotAddNullifierHashBlockerIfNotManager(address otherAccount) public {
-        vm.assume(manager != otherAccount);
-        vm.prank(otherAccount);
-        vm.expectRevert(
-            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, otherAccount)
-        );
-        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-    }
-
-    /// @notice Tests that AddNullifierHashBlocker can only be called by the manager
-    function test_CanAddNullifierHashBlockerIfManager() public {
-        vm.prank(manager);
-        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-    }
-
-    /// @notice Tests that setNullifierHash can only be called by approved blockers
-    function test_setNullifierHash_revertsIfNotAllowed(address setter) public {
-        vm.prank(setter);
-        vm.expectRevert(
-            abi.encodeWithSelector(RecurringGrantDrop.UnauthorizedNullifierHashBlocker.selector)
-        );
-        airdrop.setNullifierHash(10);
-    }
-
-    /// @notice Tests that setNullifierHash can only be called by approved blockers
-    function test_setNullifierHash_canBeCalledByAllowedBlocker() public {
-        vm.prank(manager);
-        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        vm.prank(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        airdrop.setNullifierHash(1);
-    }
-
-    /// @notice Tests that setNullifierHash can only be called once by approved blockers
-    function test_setNullifierHash_revertsIfCalledTwice() public {
-        vm.prank(manager);
-        airdrop.addAllowedNullifierHashBlocker(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        vm.prank(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        airdrop.setNullifierHash(1);
-
-        vm.prank(address(0x5a944372A297C5CaFE166525E3C631a06787b4b2));
-        vm.expectRevert(RecurringGrantDrop.NullifierHashAlreadyBlocked.selector);
-        airdrop.setNullifierHash(1);
-    }
-
     /// @notice Tests that the manager can update the grant
     function test_UpdateGrant() public {
         WLDGrant grant2 = new WLDGrant();
@@ -338,4 +293,3 @@ contract RecurringGrantDropTest is PRBTest {
         assertEq(address(airdrop.grant()), address(grant));
     }
 }
-
