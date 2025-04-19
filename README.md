@@ -30,7 +30,7 @@ Once users have identities included on the configured group, they should generat
 and a proof for it (which can be done through the
 [@zk-kit/protocols](https://github.com/appliedzkp/zk-kit/tree/main/packages/protocols) or
 [semaphore-rs](https://github.com/worldcoin/semaphore-rs) SDKs, using the address who will receive
-the tokens as the signal). Once they have both, they can claim the aidrop by calling
+the tokens as the signal). Once they have both, they can claim the airdrop by calling
 `WorldIDAirdrop.claim(RECEIVER_ADDRESS, NULLIFIER_HASH, SOLIDITY_ENCODED_PROOF)`.
 
 You can see the complete flow in action on the
