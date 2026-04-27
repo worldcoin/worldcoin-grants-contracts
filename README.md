@@ -49,9 +49,10 @@ after a configured launch timestamp. Claims are verified with the World ID V2 ve
 Safe through the AllowanceModule at claim time, locked for a configured period, and later withdrawn
 permissionlessly to the wallet registered during the initial claim.
 
-The production Forge deployment config lives at `script/deploy-config.production.json`. Deployment is
-performed with `script/deploy-locked-one-time-grant.sh`, which uses a Ledger signer and fails before
-broadcast if the production `rpId` placeholder has not been replaced.
+Forge deployment configs live at `script/deploy-config.production.json` and
+`script/deploy-config.staging.json`. Deployment is performed with
+`script/deploy-locked-one-time-grant.sh`, which uses a Ledger signer and fails before broadcast if the
+selected config's `rpId` placeholder has not been replaced.
 
 ## Development
 

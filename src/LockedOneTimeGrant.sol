@@ -29,6 +29,7 @@ contract LockedOneTimeGrant is Ownable2Step, IWIP101 {
     using SafeERC20 for ERC20;
 
     bytes4 public constant WIP101_MAGIC_VALUE = IWIP101.verifyRpRequest.selector;
+    uint64 public constant MAX_WIP101_REQUEST_VALIDITY = 15 * 60;
     uint256 public constant WIP101_INVALID_VERSION = 1;
     uint256 public constant WIP101_INVALID_TIMESTAMP = 2;
     uint256 public constant WIP101_INVALID_ACTION = 3;
@@ -281,8 +282,9 @@ contract LockedOneTimeGrant is Ownable2Step, IWIP101 {
     }
 
     /// @notice Withdraw a locked grant to the wallet registered during claim.
-    /// @dev Permissionless by design; funds always go to the registered receiver.
-    function withdraw(uint256 nullifierHash) external {
+    /// @dev Permissionless by design; funds always go to the provided registered receiver.
+    function withdraw(address receiver) external {
+        uint256 nullifierHash = registeredNullifierHashes[receiver];
         Claim storage grant = claims[nullifierHash];
 
         if (grant.receiver == address(0)) revert GrantNotClaimed();
@@ -307,9 +309,10 @@ contract LockedOneTimeGrant is Ownable2Step, IWIP101 {
     /// @notice Validates OPRF proof requests when this contract is registered as the RP signer.
     /// @dev The OPRF nodes call this before producing a proof. This deliberately authorizes only
     ///      this grant's configured action and rejects all auxiliary data. Requests must already be
-    ///      live: `createdAt <= block.timestamp < expiresAt`. The nonce is intentionally unused
-    ///      here; uniqueness is enforced by the OPRF nodes and by consuming the World ID nullifier
-    ///      during claim.
+    ///      live: `createdAt <= block.timestamp < expiresAt`, and may not expire more than
+    ///      MAX_WIP101_REQUEST_VALIDITY seconds in the future. The nonce is intentionally unused here;
+    ///      uniqueness is enforced by the OPRF nodes and by consuming the World ID nullifier during
+    ///      claim.
     function verifyRpRequest(
         uint8 version,
         uint256,
@@ -320,7 +323,10 @@ contract LockedOneTimeGrant is Ownable2Step, IWIP101 {
     ) external view returns (bytes4) {
         if (stopped) revert IWIP101.RpInvalidRequest(WIP101_STOPPED);
         if (version != 1) revert IWIP101.RpInvalidRequest(WIP101_INVALID_VERSION);
-        if (createdAt > block.timestamp || createdAt > expiresAt || expiresAt <= block.timestamp) {
+        if (
+            createdAt > block.timestamp || createdAt > expiresAt || expiresAt <= block.timestamp
+                || expiresAt > block.timestamp + MAX_WIP101_REQUEST_VALIDITY
+        ) {
             revert IWIP101.RpInvalidRequest(WIP101_INVALID_TIMESTAMP);
         }
         if (requestAction != action) revert IWIP101.RpInvalidRequest(WIP101_INVALID_ACTION);

@@ -358,7 +358,7 @@ contract LockedOneTimeGrantTest is PRBTest {
         vm.warp(CLAIM_TIME);
 
         bytes4 magicValue = grantDrop.verifyRpRequest(
-            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, ""
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 10 minutes), action, ""
         );
 
         assertEq(magicValue, grantDrop.WIP101_MAGIC_VALUE());
@@ -369,12 +369,12 @@ contract LockedOneTimeGrantTest is PRBTest {
 
         _expectRpInvalidRequest(grantDrop.WIP101_INVALID_ACTION());
         grantDrop.verifyRpRequest(
-            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action + 1, ""
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 10 minutes), action + 1, ""
         );
 
         _expectRpInvalidRequest(grantDrop.WIP101_UNSUPPORTED_AUX_DATA());
         grantDrop.verifyRpRequest(
-            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, hex"01"
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 10 minutes), action, hex"01"
         );
     }
 
@@ -383,12 +383,12 @@ contract LockedOneTimeGrantTest is PRBTest {
 
         _expectRpInvalidRequest(grantDrop.WIP101_INVALID_VERSION());
         grantDrop.verifyRpRequest(
-            2, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, ""
+            2, NONCE, uint64(block.timestamp), uint64(block.timestamp + 10 minutes), action, ""
         );
 
         _expectRpInvalidRequest(grantDrop.WIP101_INVALID_TIMESTAMP());
         grantDrop.verifyRpRequest(
-            1, NONCE, uint64(block.timestamp + 1), uint64(block.timestamp + 1 hours), action, ""
+            1, NONCE, uint64(block.timestamp + 1), uint64(block.timestamp + 10 minutes), action, ""
         );
 
         _expectRpInvalidRequest(grantDrop.WIP101_INVALID_TIMESTAMP());
@@ -405,6 +405,12 @@ contract LockedOneTimeGrantTest is PRBTest {
         grantDrop.verifyRpRequest(
             1, NONCE, uint64(block.timestamp - 1 hours), uint64(block.timestamp), action, ""
         );
+
+        uint64 tooLateExpiresAt =
+            uint64(block.timestamp + grantDrop.MAX_WIP101_REQUEST_VALIDITY() + 1);
+
+        _expectRpInvalidRequest(grantDrop.WIP101_INVALID_TIMESTAMP());
+        grantDrop.verifyRpRequest(1, NONCE, uint64(block.timestamp), tooLateExpiresAt, action, "");
     }
 
     ////////////////////////////////////////////////////////////////
@@ -421,7 +427,7 @@ contract LockedOneTimeGrantTest is PRBTest {
                 LockedOneTimeGrant.GrantLocked.selector, CLAIM_TIME + INITIAL_LOCKUP_PERIOD
             )
         );
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
 
         vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
         vm.expectEmit(true, true, false, true, address(token));
@@ -430,7 +436,7 @@ contract LockedOneTimeGrantTest is PRBTest {
         emit GrantWithdrawn(NULLIFIER_HASH, user, INITIAL_AMOUNT);
 
         vm.prank(caller);
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
 
         LockedOneTimeGrant.Claim memory grant = grantDrop.claimFor(user);
         assertTrue(grant.withdrawn);
@@ -453,9 +459,9 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertEq(grantDrop.claimableBalanceOf(user), INITIAL_AMOUNT);
     }
 
-    function test_withdrawRevertsForUnknownNullifier() public {
+    function test_withdrawRevertsForUnknownReceiver() public {
         vm.expectRevert(LockedOneTimeGrant.GrantNotClaimed.selector);
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
     }
 
     function test_withdrawUsesAlreadyFundedClaimAfterHolderAndModuleUpdates() public {
@@ -479,7 +485,7 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertEq(token.balanceOf(address(grantDrop)), INITIAL_AMOUNT * 2);
 
         vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
 
         assertEq(token.balanceOf(user), INITIAL_AMOUNT);
         assertEq(token.balanceOf(address(grantDrop)), INITIAL_AMOUNT);
@@ -490,10 +496,10 @@ contract LockedOneTimeGrantTest is PRBTest {
         _claim(user, NULLIFIER_HASH);
 
         vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
 
         vm.expectRevert(LockedOneTimeGrant.GrantAlreadyWithdrawn.selector);
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
     }
 
     function test_withdrawStillWorksWhenStopped() public {
@@ -510,11 +516,11 @@ contract LockedOneTimeGrantTest is PRBTest {
             abi.encodeWithSelector(IWIP101.RpInvalidRequest.selector, grantDrop.WIP101_STOPPED())
         );
         grantDrop.verifyRpRequest(
-            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, ""
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 10 minutes), action, ""
         );
 
         vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
-        grantDrop.withdraw(NULLIFIER_HASH);
+        grantDrop.withdraw(user);
 
         assertEq(token.balanceOf(user), INITIAL_AMOUNT);
     }
