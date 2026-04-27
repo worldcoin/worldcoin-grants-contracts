@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -20,13 +20,24 @@ jobs:
         with:
           version: nightly
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v6
         with:
           node-version: '17'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install Dependencies
         run: make install
+
+      - name: Check formatting
+        run: >-
+          forge fmt --check
+          src/LockedOneTimeGrant.sol
+          src/test/LockedOneTimeGrant.t.sol
+          src/IWorldIDVerifierV2.sol
+          src/test/mock/WorldIDVerifierV2Mock.sol
+          src/test/mock/MockAllowanceModule.sol
+          script/LockedOneTimeGrant.s.sol
 
       - name: Build contracts
         run: make build

@@ -1,0 +1,13 @@
+{
+  "ethereumRpcUrl": "https://worldchain-mainnet.g.alchemy.com/public",
+  "worldIDVerifierAddress": "0x703a6316c975DEabF30b637c155edD53e24657DB",
+  "erc20Address": "0x2cFc85d8E48F8EAB294be644d9E25C3030863003",
+  "holderAddress": "0x0000000000000000000000000000000000000000",
+  "allowanceModuleAddress": "0x0000000000000000000000000000000000000000",
+  "rpId": 0,
+  "action": 213874039008591564857778031715203386395011133103471756759734333441319635224,
+  "issuerSchemaId": 1,
+  "credentialGenesisIssuedAtMin": 1777248000,
+  "grantAmount": 5000000000000000000,
+  "lockupPeriod": 94608000
+}
