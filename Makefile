@@ -24,6 +24,8 @@ deploy-airdrop:; node --no-warnings script/deploy.js deploy-airdrop
 
 deploy-airdrop-reservations:; node --no-warnings script/deploy.js deploy-airdrop-reservations
 
+deploy-locked-one-time-grant:; script/deploy-locked-one-time-grant.sh
+
 set-allowance-max:; node --no-warnings script/deploy.js set-allowance-max
 
 set-allowance:; node --no-warnings script/deploy.js set-allowance
