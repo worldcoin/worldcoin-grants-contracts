@@ -54,6 +54,11 @@ Forge deployment configs live at `script/deploy-config.production.json` and
 `script/deploy-locked-one-time-grant.sh`, which uses a Ledger signer and fails before broadcast if the
 selected config's `rpId` placeholder has not been replaced.
 
+For deterministic deployment with a vanity address, run `forge build`, grind a salt with
+`node script/grind-locked-one-time-grant-address.mjs --prefix 0000`, then deploy with
+`CREATE2_SALT=<salt> script/deploy-locked-one-time-grant-create2.sh`. If you override the CREATE2
+deployer address, pass the same `CREATE2_DEPLOYER` value to both scripts.
+
 ## Development
 
 This repository uses the [Foundry](https://github.com/gakonst/foundry) smart contract toolkit. You

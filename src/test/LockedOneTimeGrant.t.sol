@@ -4,11 +4,18 @@ pragma solidity ^0.8.19;
 import {PRBTest} from "@prb/test/PRBTest.sol";
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {Create2} from "openzeppelin-contracts/contracts/utils/Create2.sol";
 import {IWorldIDVerifierV2} from "src/IWorldIDVerifierV2.sol";
 import {IWIP101, LockedOneTimeGrant} from "src/LockedOneTimeGrant.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
 import {MockAllowanceModule} from "./mock/MockAllowanceModule.sol";
 import {WorldIDVerifierV2Mock} from "./mock/WorldIDVerifierV2Mock.sol";
+
+contract Create2DeployHelper {
+    function deploy(bytes32 salt, bytes memory initCode) external returns (address) {
+        return Create2.deploy(0, salt, initCode);
+    }
+}
 
 /// @title LockedOneTimeGrant Tests
 /// @author Worldcoin
@@ -201,6 +208,18 @@ contract LockedOneTimeGrantTest is PRBTest {
         config = _validDeployConfig();
         config.lockupPeriod = 0;
         _expectDeployConfigRevert(config);
+    }
+
+    function test_create2PredictionMatchesDeployment() public {
+        DeployConfig memory config = _validDeployConfig();
+        Create2DeployHelper deployer = new Create2DeployHelper();
+        bytes32 salt = keccak256("locked-one-time-grant-create2-test");
+        bytes memory initCode = _creationCode(config);
+        address predicted = Create2.computeAddress(salt, keccak256(initCode), address(deployer));
+        address deployed = deployer.deploy(salt, initCode);
+
+        assertEq(deployed, predicted);
+        assertEq(address(LockedOneTimeGrant(deployed).token()), address(token));
     }
 
     ////////////////////////////////////////////////////////////////
@@ -747,6 +766,24 @@ contract LockedOneTimeGrantTest is PRBTest {
             config.credentialGenesisIssuedAtMin,
             config.grantAmount,
             config.lockupPeriod
+        );
+    }
+
+    function _creationCode(DeployConfig memory config) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            type(LockedOneTimeGrant).creationCode,
+            abi.encode(
+                config.worldIdVerifier,
+                config.token,
+                config.holder,
+                config.allowanceModule,
+                config.rpId,
+                config.action,
+                config.issuerSchemaId,
+                config.credentialGenesisIssuedAtMin,
+                config.grantAmount,
+                config.lockupPeriod
+            )
         );
     }
 
