@@ -112,6 +112,8 @@ contract MockAllowanceModule is IAllowanceModule {
         address payable to,
         uint96 amount
     ) external override {
-        require(wldToken.transferFrom(holder, to, amount), "Transfer failed");
+        require(safe == holder, "Invalid safe");
+        require(token == address(wldToken), "Invalid token");
+        require(wldToken.transferFrom(safe, to, amount), "Transfer failed");
     }
 }

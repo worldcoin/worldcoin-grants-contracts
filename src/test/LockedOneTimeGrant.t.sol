@@ -2,8 +2,10 @@
 pragma solidity ^0.8.19;
 
 import {PRBTest} from "@prb/test/PRBTest.sol";
+import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IWorldIDVerifierV2} from "src/IWorldIDVerifierV2.sol";
-import {LockedOneTimeGrant} from "src/LockedOneTimeGrant.sol";
+import {IWIP101, LockedOneTimeGrant} from "src/LockedOneTimeGrant.sol";
 import {TestERC20} from "./mock/TestERC20.sol";
 import {MockAllowanceModule} from "./mock/MockAllowanceModule.sol";
 import {WorldIDVerifierV2Mock} from "./mock/WorldIDVerifierV2Mock.sol";
@@ -11,6 +13,30 @@ import {WorldIDVerifierV2Mock} from "./mock/WorldIDVerifierV2Mock.sol";
 /// @title LockedOneTimeGrant Tests
 /// @author Worldcoin
 contract LockedOneTimeGrantTest is PRBTest {
+    event LockedOneTimeGrantInitialized(
+        IWorldIDVerifierV2 indexed worldIdVerifier,
+        ERC20 indexed token,
+        address indexed holder,
+        address allowanceModule,
+        uint64 rpId,
+        uint256 action,
+        uint64 issuerSchemaId,
+        uint256 credentialGenesisIssuedAtMin,
+        uint96 grantAmount,
+        uint64 lockupPeriod
+    );
+    event GrantClaimed(
+        uint256 indexed nullifierHash, address indexed receiver, uint96 amount, uint64 unlockAt
+    );
+    event GrantWithdrawn(uint256 indexed nullifierHash, address indexed receiver, uint96 amount);
+    event WorldIdVerifierUpdated(IWorldIDVerifierV2 indexed worldIdVerifier);
+    event HolderUpdated(address indexed holder);
+    event AllowanceModuleUpdated(address indexed allowanceModule);
+    event GrantParametersUpdated(uint96 grantAmount, uint64 lockupPeriod);
+    event CredentialGenesisIssuedAtMinUpdated(uint256 credentialGenesisIssuedAtMin);
+    event StoppedUpdated(bool stopped);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
     uint64 internal constant RP_ID = 1_000;
     uint64 internal constant ORB_ISSUER_SCHEMA_ID = 1;
     uint256 internal constant CREDENTIAL_GENESIS_ISSUED_AT_MIN = 1_782_864_000;
@@ -36,6 +62,19 @@ contract LockedOneTimeGrantTest is PRBTest {
     MockAllowanceModule internal allowanceModule;
     WorldIDVerifierV2Mock internal verifier;
     LockedOneTimeGrant internal grantDrop;
+
+    struct DeployConfig {
+        IWorldIDVerifierV2 worldIdVerifier;
+        ERC20 token;
+        address holder;
+        address allowanceModule;
+        uint64 rpId;
+        uint256 action;
+        uint64 issuerSchemaId;
+        uint256 credentialGenesisIssuedAtMin;
+        uint96 grantAmount;
+        uint64 lockupPeriod;
+    }
 
     function setUp() public {
         manager = address(0x1);
@@ -84,29 +123,26 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertEq(grantDrop.credentialGenesisIssuedAtMin(), CREDENTIAL_GENESIS_ISSUED_AT_MIN);
         assertEq(grantDrop.grantAmount(), INITIAL_AMOUNT);
         assertEq(grantDrop.lockupPeriod(), INITIAL_LOCKUP_PERIOD);
+        assertTrue(!grantDrop.stopped());
         assertEq(grantDrop.owner(), manager);
     }
 
-    function test_constructorRejectsInvalidActionForWorldIdV2() public {
-        uint256 invalidAction = action | (uint256(1) << 248);
-
-        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
-        new LockedOneTimeGrant(
+    function test_constructorEmitsInitializedEvent() public {
+        vm.expectEmit(true, true, true, true);
+        emit LockedOneTimeGrantInitialized(
             verifier,
             token,
             holder,
             address(allowanceModule),
             RP_ID,
-            invalidAction,
+            action,
             ORB_ISSUER_SCHEMA_ID,
             CREDENTIAL_GENESIS_ISSUED_AT_MIN,
             INITIAL_AMOUNT,
             INITIAL_LOCKUP_PERIOD
         );
-    }
 
-    function test_constructorRejectsZeroAmount() public {
-        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        vm.prank(manager);
         new LockedOneTimeGrant(
             verifier,
             token,
@@ -116,18 +152,70 @@ contract LockedOneTimeGrantTest is PRBTest {
             action,
             ORB_ISSUER_SCHEMA_ID,
             CREDENTIAL_GENESIS_ISSUED_AT_MIN,
-            0,
+            INITIAL_AMOUNT,
             INITIAL_LOCKUP_PERIOD
         );
+    }
+
+    function test_constructorRejectsInvalidConfiguration() public {
+        DeployConfig memory config = _validDeployConfig();
+        config.worldIdVerifier = IWorldIDVerifierV2(address(0));
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.token = ERC20(address(0));
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.holder = address(0);
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.allowanceModule = address(0);
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.rpId = 0;
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.action = 0;
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.action = action | (uint256(1) << 248);
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.issuerSchemaId = 0;
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.credentialGenesisIssuedAtMin = 0;
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.grantAmount = 0;
+        _expectDeployConfigRevert(config);
+
+        config = _validDeployConfig();
+        config.lockupPeriod = 0;
+        _expectDeployConfigRevert(config);
     }
 
     ////////////////////////////////////////////////////////////////
     ///                           Claim                          ///
     ////////////////////////////////////////////////////////////////
 
-    function test_claimRegistersGrantWithoutTransferAndForwardsVerifierInputs() public {
+    function test_claimRegistersGrantAndPullsFundsIntoContract() public {
         vm.warp(CLAIM_TIME);
         _expectVerifierCall(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN);
+        vm.expectEmit(true, true, false, true, address(token));
+        emit Transfer(holder, address(grantDrop), INITIAL_AMOUNT);
+        vm.expectEmit(true, true, false, true, address(grantDrop));
+        emit GrantClaimed(
+            NULLIFIER_HASH, user, INITIAL_AMOUNT, uint64(CLAIM_TIME + INITIAL_LOCKUP_PERIOD)
+        );
 
         vm.prank(caller);
         grantDrop.claim(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN, _proof());
@@ -143,7 +231,17 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertEq(grantDrop.lockedBalanceOf(user), INITIAL_AMOUNT);
         assertEq(grantDrop.claimableBalanceOf(user), 0);
         assertEq(token.balanceOf(user), 0);
-        assertEq(token.balanceOf(holder), 100 ether);
+        assertEq(token.balanceOf(address(grantDrop)), INITIAL_AMOUNT);
+        assertEq(token.balanceOf(holder), 100 ether - INITIAL_AMOUNT);
+    }
+
+    function test_balancesReturnZeroForUnregisteredReceiver() public {
+        LockedOneTimeGrant.Claim memory grant = grantDrop.claimFor(user);
+
+        assertEq(grant.receiver, address(0));
+        assertEq(grantDrop.grantBalanceOf(user), 0);
+        assertEq(grantDrop.lockedBalanceOf(user), 0);
+        assertEq(grantDrop.claimableBalanceOf(user), 0);
     }
 
     function test_claimRevertsForZeroReceiver() public {
@@ -178,6 +276,38 @@ contract LockedOneTimeGrantTest is PRBTest {
         rejectingGrantDrop.claim(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN, _proof());
     }
 
+    function test_claimRevertsWhenAllowanceIsRevoked() public {
+        vm.prank(holder);
+        token.approve(address(allowanceModule), 0);
+
+        _expectVerifierCall(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN);
+        vm.expectRevert();
+        vm.prank(caller);
+        grantDrop.claim(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN, _proof());
+
+        LockedOneTimeGrant.Claim memory grant = grantDrop.claimFor(user);
+        assertEq(grant.receiver, address(0));
+        assertEq(grantDrop.registeredNullifierHashes(user), 0);
+        assertEq(token.balanceOf(address(grantDrop)), 0);
+    }
+
+    function test_claimRevertsWhenHolderBalanceIsInsufficient() public {
+        uint256 holderBalance = token.balanceOf(holder);
+
+        vm.prank(holder);
+        token.transfer(address(0x99), holderBalance);
+
+        _expectVerifierCall(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN);
+        vm.expectRevert();
+        vm.prank(caller);
+        grantDrop.claim(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN, _proof());
+
+        LockedOneTimeGrant.Claim memory grant = grantDrop.claimFor(user);
+        assertEq(grant.receiver, address(0));
+        assertEq(grantDrop.registeredNullifierHashes(user), 0);
+        assertEq(token.balanceOf(address(grantDrop)), 0);
+    }
+
     function test_claimSnapshotsAmountAndLockupForEachUser() public {
         vm.warp(CLAIM_TIME);
         _claim(user, NULLIFIER_HASH);
@@ -197,6 +327,86 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertEq(secondGrant.unlockAt, CLAIM_TIME + 10 days + UPDATED_LOCKUP_PERIOD);
     }
 
+    function test_claimUsesUpdatedCredentialGenesisIssuedAtMin() public {
+        vm.prank(manager);
+        grantDrop.setCredentialGenesisIssuedAtMin(CREDENTIAL_GENESIS_ISSUED_AT_MIN + 1 days);
+
+        vm.warp(CLAIM_TIME);
+        _claim(user, NULLIFIER_HASH);
+    }
+
+    function test_claimRevertsWhenStopped() public {
+        vm.prank(manager);
+        grantDrop.setStopped(true);
+
+        vm.expectRevert(LockedOneTimeGrant.GrantStopped.selector);
+        grantDrop.claim(user, NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN, _proof());
+    }
+
+    ////////////////////////////////////////////////////////////////
+    ///                         WIP-101                          ///
+    ////////////////////////////////////////////////////////////////
+
+    function test_supportsWip101Interfaces() public {
+        assertEq(type(IWIP101).interfaceId, IWIP101.verifyRpRequest.selector);
+        assertTrue(grantDrop.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(grantDrop.supportsInterface(type(IWIP101).interfaceId));
+        assertTrue(!grantDrop.supportsInterface(0xffffffff));
+    }
+
+    function test_verifyRpRequestAuthorizesGrantAction() public {
+        vm.warp(CLAIM_TIME);
+
+        bytes4 magicValue = grantDrop.verifyRpRequest(
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, ""
+        );
+
+        assertEq(magicValue, grantDrop.WIP101_MAGIC_VALUE());
+    }
+
+    function test_verifyRpRequestRejectsUnsupportedRequests() public {
+        vm.warp(CLAIM_TIME);
+
+        _expectRpInvalidRequest(grantDrop.WIP101_INVALID_ACTION());
+        grantDrop.verifyRpRequest(
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action + 1, ""
+        );
+
+        _expectRpInvalidRequest(grantDrop.WIP101_UNSUPPORTED_AUX_DATA());
+        grantDrop.verifyRpRequest(
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, hex"01"
+        );
+    }
+
+    function test_verifyRpRequestRejectsInvalidMetadata() public {
+        vm.warp(CLAIM_TIME);
+
+        _expectRpInvalidRequest(grantDrop.WIP101_INVALID_VERSION());
+        grantDrop.verifyRpRequest(
+            2, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, ""
+        );
+
+        _expectRpInvalidRequest(grantDrop.WIP101_INVALID_TIMESTAMP());
+        grantDrop.verifyRpRequest(
+            1, NONCE, uint64(block.timestamp + 1), uint64(block.timestamp + 1 hours), action, ""
+        );
+
+        _expectRpInvalidRequest(grantDrop.WIP101_INVALID_TIMESTAMP());
+        grantDrop.verifyRpRequest(
+            1,
+            NONCE,
+            uint64(block.timestamp + 2 hours),
+            uint64(block.timestamp + 1 hours),
+            action,
+            ""
+        );
+
+        _expectRpInvalidRequest(grantDrop.WIP101_INVALID_TIMESTAMP());
+        grantDrop.verifyRpRequest(
+            1, NONCE, uint64(block.timestamp - 1 hours), uint64(block.timestamp), action, ""
+        );
+    }
+
     ////////////////////////////////////////////////////////////////
     ///                         Withdraw                         ///
     ////////////////////////////////////////////////////////////////
@@ -214,6 +424,11 @@ contract LockedOneTimeGrantTest is PRBTest {
         grantDrop.withdraw(NULLIFIER_HASH);
 
         vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
+        vm.expectEmit(true, true, false, true, address(token));
+        emit Transfer(address(grantDrop), user, INITIAL_AMOUNT);
+        vm.expectEmit(true, true, false, true, address(grantDrop));
+        emit GrantWithdrawn(NULLIFIER_HASH, user, INITIAL_AMOUNT);
+
         vm.prank(caller);
         grantDrop.withdraw(NULLIFIER_HASH);
 
@@ -221,6 +436,7 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertTrue(grant.withdrawn);
         assertEq(token.balanceOf(user), INITIAL_AMOUNT);
         assertEq(token.balanceOf(holder), 100 ether - INITIAL_AMOUNT);
+        assertEq(token.balanceOf(address(grantDrop)), 0);
         assertEq(grantDrop.grantBalanceOf(user), 0);
         assertEq(grantDrop.lockedBalanceOf(user), 0);
         assertEq(grantDrop.claimableBalanceOf(user), 0);
@@ -242,6 +458,33 @@ contract LockedOneTimeGrantTest is PRBTest {
         grantDrop.withdraw(NULLIFIER_HASH);
     }
 
+    function test_withdrawUsesAlreadyFundedClaimAfterHolderAndModuleUpdates() public {
+        vm.warp(CLAIM_TIME);
+        _claim(user, NULLIFIER_HASH);
+
+        address newHolder = address(0x77);
+        MockAllowanceModule newAllowanceModule = new MockAllowanceModule(address(token), newHolder);
+
+        token.issue(newHolder, 100 ether);
+        vm.prank(newHolder);
+        token.approve(address(newAllowanceModule), type(uint256).max);
+
+        vm.startPrank(manager);
+        grantDrop.setHolder(newHolder);
+        grantDrop.setAllowanceModule(address(newAllowanceModule));
+        vm.stopPrank();
+
+        _claim(secondUser, SECOND_NULLIFIER_HASH);
+
+        assertEq(token.balanceOf(address(grantDrop)), INITIAL_AMOUNT * 2);
+
+        vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
+        grantDrop.withdraw(NULLIFIER_HASH);
+
+        assertEq(token.balanceOf(user), INITIAL_AMOUNT);
+        assertEq(token.balanceOf(address(grantDrop)), INITIAL_AMOUNT);
+    }
+
     function test_withdrawRevertsAfterGrantWithdrawn() public {
         vm.warp(CLAIM_TIME);
         _claim(user, NULLIFIER_HASH);
@@ -253,11 +496,37 @@ contract LockedOneTimeGrantTest is PRBTest {
         grantDrop.withdraw(NULLIFIER_HASH);
     }
 
+    function test_withdrawStillWorksWhenStopped() public {
+        vm.warp(CLAIM_TIME);
+        _claim(user, NULLIFIER_HASH);
+
+        vm.prank(manager);
+        grantDrop.setStopped(true);
+
+        vm.expectRevert(LockedOneTimeGrant.GrantStopped.selector);
+        grantDrop.claim(secondUser, SECOND_NULLIFIER_HASH, NONCE, EXPIRES_AT_MIN, _proof());
+
+        vm.expectRevert(
+            abi.encodeWithSelector(IWIP101.RpInvalidRequest.selector, grantDrop.WIP101_STOPPED())
+        );
+        grantDrop.verifyRpRequest(
+            1, NONCE, uint64(block.timestamp), uint64(block.timestamp + 1 hours), action, ""
+        );
+
+        vm.warp(CLAIM_TIME + INITIAL_LOCKUP_PERIOD);
+        grantDrop.withdraw(NULLIFIER_HASH);
+
+        assertEq(token.balanceOf(user), INITIAL_AMOUNT);
+    }
+
     ////////////////////////////////////////////////////////////////
     ///                          Config                          ///
     ////////////////////////////////////////////////////////////////
 
     function test_ownerCanUpdateFutureGrantParameters() public {
+        vm.expectEmit(false, false, false, true, address(grantDrop));
+        emit GrantParametersUpdated(UPDATED_AMOUNT, UPDATED_LOCKUP_PERIOD);
+
         vm.prank(manager);
         grantDrop.setGrantParameters(UPDATED_AMOUNT, UPDATED_LOCKUP_PERIOD);
 
@@ -265,34 +534,116 @@ contract LockedOneTimeGrantTest is PRBTest {
         assertEq(grantDrop.lockupPeriod(), UPDATED_LOCKUP_PERIOD);
     }
 
-    function test_nonOwnerCannotUpdateGrantParameters(address notOwner) public {
+    function test_nonOwnerCannotUpdateConfiguration(address notOwner) public {
         vm.assume(notOwner != manager && notOwner != address(0));
 
+        WorldIDVerifierV2Mock newVerifier = new WorldIDVerifierV2Mock(false);
+        address newHolder = address(0x77);
+        MockAllowanceModule newAllowanceModule = new MockAllowanceModule(address(token), newHolder);
+
+        vm.startPrank(notOwner);
         vm.expectRevert();
-        vm.prank(notOwner);
+        grantDrop.setWorldIdVerifier(newVerifier);
+        vm.expectRevert();
+        grantDrop.setHolder(newHolder);
+        vm.expectRevert();
+        grantDrop.setAllowanceModule(address(newAllowanceModule));
+        vm.expectRevert();
         grantDrop.setGrantParameters(UPDATED_AMOUNT, UPDATED_LOCKUP_PERIOD);
+        vm.expectRevert();
+        grantDrop.setCredentialGenesisIssuedAtMin(CREDENTIAL_GENESIS_ISSUED_AT_MIN + 1 days);
+        vm.expectRevert();
+        grantDrop.setStopped(true);
+        vm.stopPrank();
     }
 
-    function test_ownerCanUpdateVerifierTokenHolderAllowanceAndEligibilityDate() public {
+    function test_ownerCanUpdateVerifierHolderAllowanceAndEligibilityDate() public {
         WorldIDVerifierV2Mock newVerifier = new WorldIDVerifierV2Mock(false);
-        TestERC20 newToken = new TestERC20();
-        MockAllowanceModule newAllowanceModule = new MockAllowanceModule(address(newToken), holder);
         address newHolder = address(0x77);
+        MockAllowanceModule newAllowanceModule = new MockAllowanceModule(address(token), newHolder);
         uint256 newCredentialGenesisIssuedAtMin = CREDENTIAL_GENESIS_ISSUED_AT_MIN + 1 days;
 
         vm.startPrank(manager);
+        vm.expectEmit(true, false, false, true, address(grantDrop));
+        emit WorldIdVerifierUpdated(newVerifier);
         grantDrop.setWorldIdVerifier(newVerifier);
-        grantDrop.setToken(newToken);
+
+        vm.expectEmit(true, false, false, true, address(grantDrop));
+        emit HolderUpdated(newHolder);
         grantDrop.setHolder(newHolder);
+
+        vm.expectEmit(true, false, false, true, address(grantDrop));
+        emit AllowanceModuleUpdated(address(newAllowanceModule));
         grantDrop.setAllowanceModule(address(newAllowanceModule));
+
+        vm.expectEmit(false, false, false, true, address(grantDrop));
+        emit CredentialGenesisIssuedAtMinUpdated(newCredentialGenesisIssuedAtMin);
         grantDrop.setCredentialGenesisIssuedAtMin(newCredentialGenesisIssuedAtMin);
         vm.stopPrank();
 
         assertEq(address(grantDrop.worldIdVerifier()), address(newVerifier));
-        assertEq(address(grantDrop.token()), address(newToken));
+        assertEq(address(grantDrop.token()), address(token));
         assertEq(address(grantDrop.holder()), newHolder);
         assertEq(address(grantDrop.allowanceModule()), address(newAllowanceModule));
         assertEq(grantDrop.credentialGenesisIssuedAtMin(), newCredentialGenesisIssuedAtMin);
+    }
+
+    function test_settersRejectInvalidConfiguration() public {
+        vm.startPrank(manager);
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        grantDrop.setWorldIdVerifier(IWorldIDVerifierV2(address(0)));
+
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        grantDrop.setHolder(address(0));
+
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        grantDrop.setAllowanceModule(address(0));
+
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        grantDrop.setGrantParameters(0, UPDATED_LOCKUP_PERIOD);
+
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        grantDrop.setGrantParameters(UPDATED_AMOUNT, 0);
+
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        grantDrop.setCredentialGenesisIssuedAtMin(0);
+        vm.stopPrank();
+    }
+
+    function test_ownerCanStopAndResume() public {
+        vm.startPrank(manager);
+        vm.expectEmit(false, false, false, true, address(grantDrop));
+        emit StoppedUpdated(true);
+        grantDrop.setStopped(true);
+        assertTrue(grantDrop.stopped());
+
+        vm.expectEmit(false, false, false, true, address(grantDrop));
+        emit StoppedUpdated(false);
+        grantDrop.setStopped(false);
+        assertTrue(!grantDrop.stopped());
+        vm.stopPrank();
+    }
+
+    function test_cannotLowerCredentialGenesisIssuedAtMin() public {
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        vm.prank(manager);
+        grantDrop.setCredentialGenesisIssuedAtMin(CREDENTIAL_GENESIS_ISSUED_AT_MIN - 1);
+    }
+
+    function test_ownershipTransferUsesTwoStepFlow() public {
+        address newOwner = address(0x88);
+
+        vm.prank(manager);
+        grantDrop.transferOwnership(newOwner);
+
+        assertEq(grantDrop.owner(), manager);
+        assertEq(grantDrop.pendingOwner(), newOwner);
+
+        vm.prank(newOwner);
+        grantDrop.acceptOwnership();
+
+        assertEq(grantDrop.owner(), newOwner);
+        assertEq(grantDrop.pendingOwner(), address(0));
     }
 
     function test_ownerCannotRenounceOwnership() public {
@@ -329,7 +680,7 @@ contract LockedOneTimeGrantTest is PRBTest {
                     grantDrop.signalHash(receiver),
                     expiresAtMin,
                     ORB_ISSUER_SCHEMA_ID,
-                    CREDENTIAL_GENESIS_ISSUED_AT_MIN,
+                    grantDrop.credentialGenesisIssuedAtMin(),
                     _proof()
                 )
             )
@@ -353,6 +704,42 @@ contract LockedOneTimeGrantTest is PRBTest {
             INITIAL_AMOUNT,
             INITIAL_LOCKUP_PERIOD
         );
+    }
+
+    function _validDeployConfig() internal view returns (DeployConfig memory config) {
+        config = DeployConfig({
+            worldIdVerifier: verifier,
+            token: token,
+            holder: holder,
+            allowanceModule: address(allowanceModule),
+            rpId: RP_ID,
+            action: action,
+            issuerSchemaId: ORB_ISSUER_SCHEMA_ID,
+            credentialGenesisIssuedAtMin: CREDENTIAL_GENESIS_ISSUED_AT_MIN,
+            grantAmount: INITIAL_AMOUNT,
+            lockupPeriod: INITIAL_LOCKUP_PERIOD
+        });
+    }
+
+    function _expectDeployConfigRevert(DeployConfig memory config) internal {
+        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+        vm.prank(manager);
+        new LockedOneTimeGrant(
+            config.worldIdVerifier,
+            config.token,
+            config.holder,
+            config.allowanceModule,
+            config.rpId,
+            config.action,
+            config.issuerSchemaId,
+            config.credentialGenesisIssuedAtMin,
+            config.grantAmount,
+            config.lockupPeriod
+        );
+    }
+
+    function _expectRpInvalidRequest(uint256 code) internal {
+        vm.expectRevert(abi.encodeWithSelector(IWIP101.RpInvalidRequest.selector, code));
     }
 
     function _proof() internal pure returns (uint256[5] memory proof) {

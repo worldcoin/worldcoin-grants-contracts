@@ -17,6 +17,8 @@ import {LockedOneTimeGrant} from "src/LockedOneTimeGrant.sol";
 contract DeployLockedOneTimeGrant is Script {
     LockedOneTimeGrant public grantDrop;
 
+    error MissingRpId();
+
     ///////////////////////////////////////////////////////////////////
     ///                            CONFIG                           ///
     ///////////////////////////////////////////////////////////////////
@@ -46,6 +48,8 @@ contract DeployLockedOneTimeGrant is Script {
     uint64 public lockupPeriod = uint64(vm.parseJsonUint(json, ".lockupPeriod"));
 
     function run() external {
+        if (rpId == 0) revert MissingRpId();
+
         vm.startBroadcast();
 
         grantDrop = new LockedOneTimeGrant(

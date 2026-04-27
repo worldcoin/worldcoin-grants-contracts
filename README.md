@@ -42,6 +42,17 @@ Worldcoin will maintain a Semaphore instance with a group for all the people tha
 the protocol. Once the insance is deployed, we'll provide information here so you can point your
 `WorldIDAirdrop` instances to it, ensuring only unique humans can claim your airdrop.
 
+## Locked One-Time Grants
+
+`LockedOneTimeGrant` is a one-time opt-in WLD grant contract for Orb-verified users verified on or
+after a configured launch timestamp. Claims are verified with the World ID V2 verifier, funded from a
+Safe through the AllowanceModule at claim time, locked for a configured period, and later withdrawn
+permissionlessly to the wallet registered during the initial claim.
+
+The production Forge deployment config lives at `script/deploy-config.production.json`. Deployment is
+performed with `script/deploy-locked-one-time-grant.sh`, which uses a Ledger signer and fails before
+broadcast if the production `rpId` placeholder has not been replaced.
+
 ## Development
 
 This repository uses the [Foundry](https://github.com/gakonst/foundry) smart contract toolkit. You

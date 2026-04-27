@@ -28,6 +28,16 @@ jobs:
       - name: Install Dependencies
         run: make install
 
+      - name: Check formatting
+        run: >-
+          forge fmt --check
+          src/LockedOneTimeGrant.sol
+          src/test/LockedOneTimeGrant.t.sol
+          src/IWorldIDVerifierV2.sol
+          src/test/mock/WorldIDVerifierV2Mock.sol
+          src/test/mock/MockAllowanceModule.sol
+          script/LockedOneTimeGrant.s.sol
+
       - name: Build contracts
         run: make build
 
