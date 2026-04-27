@@ -416,16 +416,13 @@ contract LockedOneTimeGrant is Ownable2Step, IWIP101 {
         emit GrantParametersUpdated(_grantAmount, _lockupPeriod);
     }
 
-    /// @notice Raises the minimum credential genesis issued-at timestamp for future claims.
-    /// @dev This value is monotonic to avoid accidentally loosening launch-date eligibility.
+    /// @notice Updates the minimum credential genesis issued-at timestamp for future claims.
+    /// @dev The owner can raise or lower this value to correct the launch-date eligibility window.
     function setCredentialGenesisIssuedAtMin(uint256 _credentialGenesisIssuedAtMin)
         external
         onlyOwner
     {
         if (_credentialGenesisIssuedAtMin == 0) revert InvalidConfiguration();
-        if (_credentialGenesisIssuedAtMin < credentialGenesisIssuedAtMin) {
-            revert InvalidConfiguration();
-        }
 
         credentialGenesisIssuedAtMin = _credentialGenesisIssuedAtMin;
         emit CredentialGenesisIssuedAtMinUpdated(_credentialGenesisIssuedAtMin);

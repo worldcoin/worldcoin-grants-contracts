@@ -624,10 +624,16 @@ contract LockedOneTimeGrantTest is PRBTest {
         vm.stopPrank();
     }
 
-    function test_cannotLowerCredentialGenesisIssuedAtMin() public {
-        vm.expectRevert(LockedOneTimeGrant.InvalidConfiguration.selector);
+    function test_ownerCanLowerCredentialGenesisIssuedAtMin() public {
+        uint256 loweredCredentialGenesisIssuedAtMin = CREDENTIAL_GENESIS_ISSUED_AT_MIN - 1;
+
+        vm.expectEmit(false, false, false, true, address(grantDrop));
+        emit CredentialGenesisIssuedAtMinUpdated(loweredCredentialGenesisIssuedAtMin);
+
         vm.prank(manager);
-        grantDrop.setCredentialGenesisIssuedAtMin(CREDENTIAL_GENESIS_ISSUED_AT_MIN - 1);
+        grantDrop.setCredentialGenesisIssuedAtMin(loweredCredentialGenesisIssuedAtMin);
+
+        assertEq(grantDrop.credentialGenesisIssuedAtMin(), loweredCredentialGenesisIssuedAtMin);
     }
 
     function test_ownershipTransferUsesTwoStepFlow() public {
